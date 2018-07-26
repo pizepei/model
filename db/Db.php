@@ -2,17 +2,12 @@
 /**
  * Class Model
  * PDO模型
+ * Model::table()->spliceWhere();
  */
-namespace pizepei\;
-use pizepei\config-ng\config;
+namespace pizepei\db;
+use pizepei\config\config;
 
-
-header("Content-Type=text/html;charset=utf8");
-
-Model::table()->spliceWhere();
-
-
-class Model
+class Db
 {
 
     private static $pdo = null;
@@ -129,11 +124,10 @@ class Model
     public static function table($table=null)
     {
         /**
-         * 不存在
          * 合并配置
          * 连接数据库
          */
-        //self::$alterConfig = array_merge(self::$alterConfig, Config::DBTABASE);  暂时屏蔽
+        self::$alterConfig = array_merge( Dbtabase::DBTABASE,self::$alterConfig);
         /**
          * type 数据库类型
          * host 数据库主机名
@@ -312,11 +306,6 @@ class Model
                 $judgeAndStr = rtrim($judgeAndStr,'AND');
             }
 
-
-
-
-
-
             if(empty($judgeAndStr) && empty($judgeUnknownStr)){
                 echo '错误';
             }else{
@@ -328,8 +317,6 @@ class Model
         var_dump($WERE);
 
         return $WERE;
-
-
 
     }
 
