@@ -4,7 +4,7 @@
  * PDO模型
  * Model::table()->spliceWhere();
  */
-namespace pizepei\db;
+namespace pizepei\model\db;
 use pizepei\config\config;
 
 class Db
