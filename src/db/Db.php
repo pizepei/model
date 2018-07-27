@@ -12,7 +12,15 @@ class Db
 
     private static $pdo = null;
 
-    private static $table = null;
+    /**
+     * @var string 表名称
+     */
+    private  $table = '';
+    /**
+     * @var string 表名称
+     */
+    private static $altertabl = '';
+
 
     private static $dbName = null;
     /**
@@ -21,66 +29,66 @@ class Db
     private  $config = [];
 
     public static $alterConfig = [
-        // 数据库类型
-        'type'        => 'mysql',
-        // 数据库连接DSN配置
-        'dsn'         => '',
-        // 服务器地址
-        'hostname'    => '',
-        // 数据库名
-        'database'    => 'oauth',
-        // 数据库用户名
-        'username'    => 'oauth',
-        // 数据库密码
-        'password'    => '',
-        // 数据库连接端口
-        'hostport'    => '3306',
-        // 数据库连接参数  参考资料http://php.net/manual/zh/pdo.setattribute.php
-        'params'      => [
-            /**
-             * 是否保持长连接   是
-             */
-            \PDO::ATTR_PERSISTENT => true,
-            /**
-             *即由MySQL进行变量处理
-             */
-            \PDO::ATTR_EMULATE_PREPARES =>false,
-            /**
-             * 指定超时的秒数。并非所有驱动都支持此选项，这意味着驱动和驱动之间可能会有差异。比如，SQLite等待的时间达到此值后就放弃获取可写锁，但其他驱动可能会将此值解释为一个连接或读取超时的间隔。 需要 int 类型。
-             */
-            \PDO::ATTR_TIMEOUT => 3,
-            /**
-             * 数据库编码  同 $_pdo->query("SET NAMES utf8")
-             */
-            \PDO::MYSQL_ATTR_INIT_COMMAND=>'SET NAMES utf8',
-            /**
-             * PDO::ATTR_ERRMODE：错误报告。他的$value可为：
-             *      PDO::ERRMODE_SILENT： 仅设置错误代码。
-             *      PDO::ERRMODE_WARNING: 引发 E_WARNING 错误
-             *      PDO::ERRMODE_EXCEPTION: 抛出 exceptions 异常。
-             */
-            \PDO::ATTR_ERRMODE =>\PDO::ERRMODE_EXCEPTION ,
-        ],
-        // 数据库连接编码默认
-        'charset'     => 'utf8',
-        // 数据库表前缀
-        'prefix'      => '',
-        // 数据库调试模式
-        'debug'       => false,
-        // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
-        'deploy'      => 0,
-        // 数据库读写是否分离 主从式有效
-        'rw_separate' => false,
-        // 读写分离后 主服务器数量
-        'master_num'  => 1,
-        // 指定从服务器序号
-        'slave_no'    => '',
-        // 是否严格检查字段是否存在
-        'fields_strict'  => true,
-        //是否保持长连接
-        'persistent' => true,
-        //实例化模式 true 重复使用对象  false 创建新对象
-        'setObjectPattern'=>true,
+ //        // 数据库类型
+//        'type'        => 'mysql',
+//        // 数据库连接DSN配置
+//        'dsn'         => '',
+//        // 服务器地址
+//        'hostname'    => '',
+//        // 数据库名
+//        'database'    => 'oauth',
+//        // 数据库用户名
+//        'username'    => 'oauth',
+//        // 数据库密码
+//        'password'    => '',
+//        // 数据库连接端口
+//        'hostport'    => '3306',
+//        // 数据库连接参数  参考资料http://php.net/manual/zh/pdo.setattribute.php
+//        'params'      => [
+//            /**
+//             * 是否保持长连接   是
+//             */
+//            \PDO::ATTR_PERSISTENT => true,
+//            /**
+//             *即由MySQL进行变量处理
+//             */
+//            \PDO::ATTR_EMULATE_PREPARES =>false,
+//            /**
+//             * 指定超时的秒数。并非所有驱动都支持此选项，这意味着驱动和驱动之间可能会有差异。比如，SQLite等待的时间达到此值后就放弃获取可写锁，但其他驱动可能会将此值解释为一个连接或读取超时的间隔。 需要 int 类型。
+//             */
+//            \PDO::ATTR_TIMEOUT => 3,
+//            /**
+//             * 数据库编码  同 $_pdo->query("SET NAMES utf8")
+//             */
+//            \PDO::MYSQL_ATTR_INIT_COMMAND=>'SET NAMES utf8',
+//            /**
+//             * PDO::ATTR_ERRMODE：错误报告。他的$value可为：
+//             *      PDO::ERRMODE_SILENT： 仅设置错误代码。
+//             *      PDO::ERRMODE_WARNING: 引发 E_WARNING 错误
+//             *      PDO::ERRMODE_EXCEPTION: 抛出 exceptions 异常。
+//             */
+//            \PDO::ATTR_ERRMODE =>\PDO::ERRMODE_EXCEPTION ,
+//        ],
+//        // 数据库连接编码默认
+//        'charset'     => 'utf8',
+//        // 数据库表前缀
+//        'prefix'      => '',
+//        // 数据库调试模式
+//        'debug'       => false,
+//        // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
+//        'deploy'      => 0,
+//        // 数据库读写是否分离 主从式有效
+//        'rw_separate' => false,
+//        // 读写分离后 主服务器数量
+//        'master_num'  => 1,
+//        // 指定从服务器序号
+//        'slave_no'    => '',
+//        // 是否严格检查字段是否存在
+//        'fields_strict'  => true,
+//        //是否保持长连接
+//        'persistent' => true,
+//        //实例化模式 true 重复使用对象  false 创建新对象
+//        'setObjectPattern'=>true,
     ];
 
     /**
@@ -113,21 +121,28 @@ class Db
      */
     private static $setObjectPattern = true;
 
-    public function __construct($instance)
+    public function __construct($instance,$table)
     {
+        $this->table = $table;
         $this->instance = $instance;
-
     }
     /**
      * @param null $table
      */
-    public static function table($table=null)
+    public static function table($tabl)
     {
+
         /**
          * 合并配置
          * 连接数据库
          */
         self::$alterConfig = array_merge( Dbtabase::DBTABASE,self::$alterConfig);
+
+        /**
+         * 初始化表名称
+         */
+        self::$altertabl = self::$alterConfig['prefix'].$tabl;
+
         /**
          * type 数据库类型
          * host 数据库主机名
@@ -138,7 +153,7 @@ class Db
          * 注意   ：  host前面是 : [冒号] 其他参数前面是 ; [分号]  所以参数之间 = 之间不能有空格
          */
         self::$dsn = self::$alterConfig['type'].':host='.self::$alterConfig['hostname'].';port='.self::$alterConfig['hostport'].';dbname='.self::$alterConfig['database'].';charset='.self::$alterConfig['charset'];
-        /************************资源重复利用*******************************************
+        /************************资源重复利用*******************************************/
         /**
          * 判断是否重复使用对象
          */
@@ -147,7 +162,7 @@ class Db
              * 重复使用
              *      判断对象是否存在 存在返回
              */
-            if(isset(self::$staticObject[self::$dsn])){
+            if(isset(self::$staticObject[self::$dsn . self::$altertabl])){
                 return self::$staticObject[self::$dsn];
             }
         }else{
@@ -160,15 +175,10 @@ class Db
                  * 实例化模型类
                  *      传如连接标识
                  */
-                return new static(self::$alterInstance[self::$dsn]);
+                return new static(self::$alterInstance[self::$dsn],self::$altertabl);
             }
         }
-        /**************************资源重复利用*****************************************
-        /**
-         * 准备连接参数
-         * options
-         */
-//        self::setAlterParams();
+        /**************************资源重复利用*****************************************/
 
         try {
             /**
@@ -178,7 +188,6 @@ class Db
              * self::$alterParams 连接参数
              **/
             self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'],self::$alterParams); //初始化一个PDO对象
-
             /**
              * 实例化模型类
              *      传如连接标识
@@ -190,7 +199,6 @@ class Db
         }
 
     }
-
     /**
      * @param $array
      */
@@ -211,12 +219,12 @@ class Db
             /**
              * 创建保存对象
              */
-            return self::$staticObject[self::$dsn] = new static(self::$alterInstance[self::$dsn]);
+            return self::$staticObject[self::$dsn.self::$altertabl] = new static(self::$alterInstance[self::$dsn],self::$altertabl);
         }else{
             /**
              * 不保存
              */
-            return new static(self::$alterInstance[self::$dsn]);
+            return new static(self::$alterInstance[self::$dsn],self::$altertabl);
         }
     }
 
@@ -253,6 +261,104 @@ class Db
         print_r(\PDO::ATTR_SERVER_INFO);
 //        return $result;
     }
+
+    /**
+     * 获取表结构
+     * 缓存表结构
+     */
+    public function showCreateTableCache()
+    {
+
+
+        echo DIRECTORY_SEPARATOR;
+
+        exit;
+        /**
+         * 获取完整的表结构
+         */
+        $create = $this->instance->query('show create table '.$this->table); //返回一个PDOStatement对象
+
+        $create = $create->fetchAll(); //获取所有
+        print_r($create);
+        /**
+         * 查看索引         show index from table_name
+         * MySQL SHOW INDEX会返回以下字段：
+            Table
+            表的名称。
+         *
+            Non_unique
+            如果索引不能包括重复词，则为0。如果可以，则为1。
+         *
+            Key_name
+            索引的名称。
+         *
+            Seq_in_index
+            索引中的列序列号，从1开始。
+         *
+            Column_name
+            列名称。
+         *
+            Collation
+            列以什么方式存储在索引中。在MySQLSHOW INDEX语法中，有值’A’（升序）或NULL（无分类）。
+         *
+            Cardinality
+            索引中唯一值的数目的估计值。通过运行ANALYZE TABLE或myisamchk -a可以更新。基数根据被存储为整数的统计数据来计数，所以即使对于小型表，该值也没有必要是精确的。基数越大，当进行联合时，MySQL使用该索引的机会就越大。
+         *
+            Sub_part
+            如果列只是被部分地编入索引，则为被编入索引的字符的数目。如果整列被编入索引，则为NULL。
+         *
+            Packed
+            指示关键字如何被压缩。如果没有被压缩，则为NULL。
+         *
+            Null
+            如果列含有NULL，则含有YES。如果没有，则该列含有NO。
+         *
+            Index_type
+            用过的索引方法（BTREE, FULLTEXT, HASH, RTREE）。
+         *
+            Comment
+         */
+        $index = $this->instance->query('show index from '.$this->table); //返回一个PDOStatement对象
+        $index = $index->fetchAll(); //获取所有
+        print_r($index);
+
+        $describe = $this->instance->query( 'describe '.$this->table); //返回一个PDOStatement对象
+        $describe = $describe->fetchAll(); //获取所有
+        print_r($describe);
+
+//        show create table table_name
+
+    }
+
+
+
+
+    /**
+     *构造器
+     */
+    public function constructorSend()
+    {
+        //可以看到，两者的最后返回结果是不一样的，query 返回的是一个结果集，而execute 返回的是影响行数 或者 是插入数据的id ！~由此可以看出，query 拿来执行 select 更好一些，execute 哪里执行 update | insert | delete 更好些！~~
+        try {
+
+            /**
+             * 准备sql
+             */
+
+            /**
+             * 绑定变量
+             */
+
+            /**
+             * 统计提交
+             */
+
+
+        } catch (\PDOException $e) {
+            die ("Error!: " . $e->getMessage() . "<br/>");
+        }
+    }
+
 
 
     /**
@@ -319,5 +425,28 @@ class Db
         return $WERE;
 
     }
+
+
+    /**
+     * 思考
+     *
+     * 简单的where   加是否过滤软删除
+     *
+     * 通过id 查询 表结构
+     *
+     * 通过id查询数据
+     *
+     * 批量添加   修改
+     *
+     *
+     * 软删除
+     *
+     *过滤器
+     *
+     *
+     * 规定查询字段
+     *
+     *
+     */
 
 }
