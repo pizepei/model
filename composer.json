@@ -1,20 +1,21 @@
 {
     "name": "pizepei/model",
     "description": "model",
-    "keywords": ["model pdo database"],
-    "authors": [
-        {
-            "name": "pizepei",
-            "email": "pizepei@pizepei.com"
-        }
-    ],
-    "require": {
-        "php": ">=7.0.0",
-        "pizepei/config-ng": "dev-master"
-    },
-    "autoload": {
-        "psr-4": {
-            "pizepei\\model\\": "/"
-        }
-    }
+    "homepage": "https://org.heil.top/",
+    "keywords": ["model","database","pdo","exquisite"],
+      "authors": [
+          {
+              "name": "pizepei",
+              "email": "pizepei@pizepei.com"
+          }
+      ],
+      "require": {
+          "php": ">=7.0.0",
+          "pizepei/config-ng": "dev-master"
+      },
+      "autoload": {
+          "psr-4": {
+              "pizepei\\model\\": "/"
+          }
+      }
 }
