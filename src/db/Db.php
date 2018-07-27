@@ -5,7 +5,7 @@
  * Model::table()->spliceWhere();
  */
 namespace pizepei\model\db;
-use pizepei\config\config;
+use pizepei\config\Dbtabase;
 
 class Db
 {
