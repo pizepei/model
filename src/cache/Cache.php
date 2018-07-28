@@ -52,7 +52,17 @@ class Cache{
         self::$key = $key;
         self::$data = $data;
         self::$period = $period;
+        /**
+         * 序列化数据
+         */
+        if($data == null){
+            self::$data = $data;
+        }else{
+            self::$data = serialize ($data);
+        }
+
     }
+
     /**
      * 设置缓存
      */
@@ -62,10 +72,6 @@ class Cache{
          */
         self::init($key,$data,$period);
         /**
-         * 序列化数据
-         */
-        self::$data = serialize ($data);
-        /**
          * 判断缓存类型
          *  注意自动加载无法通过use 命名空间加载，只能拼接
          */
@@ -73,6 +79,28 @@ class Cache{
         return $class::set(self::$key,self::$data,self::$period,self::$config);
 
     }
+
+    /**
+     * 设置DB缓存
+     */
+    public static function dbSet($key,$data,$period=100){
+        /**
+         * 初始化
+         */
+        self::init($key,$data,$period);
+        /**
+         * 判断缓存类型driveType
+         *  注意自动加载无法通过use 命名空间加载，只能拼接
+         *
+         */
+        $class = 'pizepei\model\cache\drive\Db'.ucfirst(self::$config['driveType']);
+        return $class::set(self::$key,self::$data,self::$period,self::$config);
+
+    }
+
+
+
+
     /**
      * 获取缓存
      * @param $key
@@ -85,6 +113,14 @@ class Cache{
 
     }
 
+    /**
+     * 清空数据
+     */
+    public static function staticEmpty()
+    {
 
+
+
+    }
 
 }

@@ -11,11 +11,13 @@
       ],
       "require": {
           "php": ">=7.0.0",
-          "pizepei/config-ng": "dev-master"
+          "pizepei/config-ng": "dev-master",
+          "pizepei/func": "dev-master"
+
       },
       "autoload": {
           "psr-4": {
-              "pizepei\\model\\": "./src"
+              "pizepei\\model\\": "src/"
           }
       }
 }
