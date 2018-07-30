@@ -6,10 +6,19 @@
  */
 namespace pizepei\model\db;
 use pizepei\config\Dbtabase;
-
+use pizepei\func\Func;
+use pizepei\model\cache\Cache;
 class Db
 {
 
+    protected  $expression= [
+        '='=>'EQ',//等于
+        '<>'=>'NEQ',//不等于（<>）
+        '>'=>'GT',//大于（>）
+        '>='=>'EGT',//大于等于（>=）
+        '<'=>'LT',//小于（<）
+        '<='=>'ELT',//小于等于（<=）
+    ];
     private static $pdo = null;
 
     /**
@@ -121,10 +130,60 @@ class Db
      */
     private static $setObjectPattern = true;
 
+
+    /**
+     * 获取完整的表结构
+     */
+    protected $table_describe = null;
+
+    /**
+     * 获取完整的表  索引
+     */
+    protected $table_index = null;
+
+
+    /**
+     * 缓存完整的表结构
+     */
+    protected $table_create = null;
+
+    /**
+     * 缓存完整的表结index
+     */
+    protected $table_describe_index = null;
+
+    /**
+     * 固定查询数据
+     * @var string
+     */
+    protected $field = '*';
+
+
     public function __construct($instance,$table)
     {
-        $this->table = $table;
+        /**
+         * 获取实例化后的类名称
+         */
+        $ClassName =explode('\\', get_called_class() );
+        $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
+        $strlen = strlen($ClassName);
+        $tablestr = '';
+        for ($x=0; $x<=$strlen-1; $x++)
+        {
+            $str =ord($ClassName{$x});
+            if($str>64 && $str <91 ){
+                $tablestr  .= '_'.strtolower($ClassName{$x});
+            }else{
+                $tablestr .=$ClassName{$x};
+            }
+        }
+        if($ClassName =='Db'){
+            $this->table = $table;
+        }else{
+            $this->table = $tablestr;
+        }
         $this->instance = $instance;
+        $this->showCreateTableCache();
     }
     /**
      * @param null $table
@@ -163,7 +222,8 @@ class Db
              *      判断对象是否存在 存在返回
              */
             if(isset(self::$staticObject[self::$dsn . self::$altertabl])){
-                return self::$staticObject[self::$dsn];
+
+                return self::$staticObject[self::$dsn . self::$altertabl];
             }
         }else{
             //不使用
@@ -228,39 +288,6 @@ class Db
         }
     }
 
-    /**
-     * 测试方法
-     */
-    public function test()
-    {
-        /**
-         * 1、准备表名称
-         *
-         * 2、准备sql
-         *
-         * 3、准备prepare
-         *
-         * 4、发送
-         */
-        $query  = 'sql';
-        $result = $this->instance->prepare($query);
-
-        //使用query
-        $stmt = $this->instance->query('select * from config limit 2'); //返回一个PDOStatement对象
-
-//        $row = $stmt->fetch(); //从结果集中获取下一行，用于while循环
-        $rows = $stmt->fetchAll(); //获取所有
-
-        $row_count = $stmt->rowCount(); //记录数，2
-        echo '<hr>';
-        print_r($row_count);
-        echo '<hr>';
-
-//        print_r($rows);
-
-        print_r(\PDO::ATTR_SERVER_INFO);
-//        return $result;
-    }
 
     /**
      * 获取表结构
@@ -269,17 +296,21 @@ class Db
     public function showCreateTableCache()
     {
 
-
-        echo DIRECTORY_SEPARATOR;
-
-        exit;
         /**
-         * 获取完整的表结构
+         * 缓存完整的表结构
          */
-        $create = $this->instance->query('show create table '.$this->table); //返回一个PDOStatement对象
-
-        $create = $create->fetchAll(); //获取所有
-        print_r($create);
+        $this->table_create = Cache::get(['table_create',$this->table],'db');
+        if(!$this->table_create){
+            /**
+             * 获取完整的表结构
+             */
+            $create = $this->instance->query('show create table '.$this->table); //返回一个PDOStatement对象
+            $this->table_create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+            /**
+             * 缓存
+             */
+            Cache::set(['table_create',$this->table],$this->table_create,0,'db');
+        }
         /**
          * 查看索引         show index from table_name
          * MySQL SHOW INDEX会返回以下字段：
@@ -318,21 +349,157 @@ class Db
          *
             Comment
          */
-        $index = $this->instance->query('show index from '.$this->table); //返回一个PDOStatement对象
-        $index = $index->fetchAll(); //获取所有
-        print_r($index);
 
-        $describe = $this->instance->query( 'describe '.$this->table); //返回一个PDOStatement对象
-        $describe = $describe->fetchAll(); //获取所有
-        print_r($describe);
+        /**
+         * 缓存完整的 索引
+         */
+        $this->table_index = Cache::get(['table_index',$this->table],'db');
 
-//        show create table table_name
+        if(!$this->table_index){
+            /**
+             * 获取完整的表索引
+             */
+            $create = $this->instance->query('show index from '.$this->table); //返回一个PDOStatement对象
+            $create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+
+            $this->table_index = $create;
+            /**
+             * 缓存
+             */
+            Cache::set(['table_index',$this->table],$this->table_index,0,'db');
+        }
+        /**
+         * 缓存完整的 表结构array
+         */
+        $this->table_describe_index = Cache::get(['table_describe_index',$this->table],'db');
+        $this->table_describe = Cache::get(['table_describe',$this->table],'db');
+        var_dump($this->table_describe_index);
+        if(!$this->table_describe || !$this->table_describe_index){
+            /**
+             * 获取完整的表结构
+             */
+            $create = $this->instance->query('describe '.$this->table); //返回一个PDOStatement对象
+            $create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+
+            $describeArrar = [];
+            $indexArrar = [];
+
+            foreach ($create as $key =>$value){
+                $describeArrar[$value['Field']] = [
+                    'Type',$value['Type'],//数据结构
+                    'Null',$value['Null'],//是否为null   NO  YES
+                    'Key',$value['Key'],//index 类型
+                    'Default',$value['Default'],//默认值
+                ];
+                /**
+                 * 获取index
+                 */
+                if(!empty($value['Key'])){
+                    $indexArrar[$value['Field']] = $value['Key'];
+                }
+            }
+
+            $this->table_describe_index = $indexArrar;
+            $this->table_describe = $describeArrar;
+            /**
+             * 缓存
+             */
+            Cache::set(['table_describe_index',$this->table],$this->table_describe_index,0,'db');
+            Cache::set(['table_describe',$this->table],$this->table_describe,0,'db');
+        }
+
+        /**
+         * 获取主键
+         */
+        $this->INDEX_PRI = array_search('PRI',$this->table_describe_index);
+
+    }
+
+    /**
+     * @param $id
+     */
+    public function get($id)
+    {
+        /**
+         * 通过id主键查询
+         */
+        /**
+         * 获取主键信息
+         */
+        /**
+         * 主键 PRI   唯一 UNI   普通 MUL
+         */
+
+        if(empty($this->INDEX_PRI)){
+            echo '重键不存在（表结构中）';
+        }
+        /**
+         * 准备slq
+         */
+        $this->sql = 'SELECT '.$this->field.' FROM  `'.$this->table.'` WHERE ( `'.$this->INDEX_PRI.'` = :'.$this->INDEX_PRI.' )';
+
+        /**
+         * 准备变量
+         */
+        $this->execute_bindValue = [':id'=>$id];
+
+        return $this->constructorSend();
+    }
+
+    /**
+     * 获取一条数据
+     */
+    public function fetch()
+    {
+
+
 
     }
 
 
-
-
+    /**
+     *获取所有数据
+     */
+    public function fetchAll()
+    {
+        echo $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
+        return $this->constructorSend();
+    }
+    /**
+     * 强制使用index
+     */
+    public function forceIndex($data){
+        /**
+         * 判断是否是array
+         */
+        if(!is_array($data)){
+            /**
+             * 不是  变成array
+             */
+            $data[] = $data;
+        }
+        $str = '';
+        /**
+         * 检查体段
+         */
+        foreach ($data as $k => $v){
+            /**
+             * 判断是否是index
+             */
+            if($this->table_describe_index[$v]){
+                /**
+                 * 判断是否是主键
+                 */
+                if($this->INDEX_PRI == $v){
+                    $str .= 'PRI ,';
+                }else{
+                    $str .= $v.' ,';
+                }
+            }
+        }
+        $str = rtrim($str,',');
+        $this->forceIndex_sql = ' force index('.$str.')';
+    }
     /**
      *构造器
      */
@@ -340,92 +507,180 @@ class Db
     {
         //可以看到，两者的最后返回结果是不一样的，query 返回的是一个结果集，而execute 返回的是影响行数 或者 是插入数据的id ！~由此可以看出，query 拿来执行 select 更好一些，execute 哪里执行 update | insert | delete 更好些！~~
         try {
-
             /**
              * 准备sql
              */
-
+             $sql = $this->instance->prepare($this->sql);
             /**
              * 绑定变量
              */
-
+            $create = $sql->execute($this->execute_bindValue);
+            if($create){
+                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+            }else{
+                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+                echo '查询错误';
+            }
             /**
              * 统计提交
              */
-
+            return $data;
 
         } catch (\PDOException $e) {
             die ("Error!: " . $e->getMessage() . "<br/>");
         }
     }
-
-
-
     /**
      * 根据条件查询查询
      */
     public function where(array $where)
     {
-
-
+        $this->spliceWhere($where);
+        return $this;
     }
-
     /**
      *
      */
     public function spliceWhere($where = array())
     {
-
-        $where['id|user'] = 5;
-
-        $where['sex'] = ['OR','性别'];
-
-        $where['sex'] = '性别';
-
+        $i = 0;
         foreach ($where as $k=>$v){
-            /**
-             * 判断是否是array
-             *
-             */
-            if(is_array($v)){
-                $judgeUnknownStr = '';
-                $judgeUnknown = strtoupper($v[0]);
-                $judgeUnknownValue = $v[1];
+            $kk = explode('|',$k);
+            if(count($kk) >1) {
                 /**
-                 * 拼接
+                 * OR
+                 *
                  */
-                $judgeUnknownStr .=" {$k} = :{$k} {$judgeUnknown}";
+                $orstr = '';
+                foreach ($kk as $ork=>$orv){
+                    /**
+                     * 拼接
+                     */
+                    $orstr .='  ' .$orv.' = :'.$orv.$ork.' OR';
+                    /**
+                     * 准备数据
+                     */
+                    $this->execute_bindValue[':'.$orv.$ork] = $v;
+                }
                 /**
-                 * 切割
+                 * 删除or
                  */
-                $judgeUnknownStr = rtrim($judgeUnknownStr,$judgeUnknown);
+                $judgeorstr[] = rtrim($orstr,'OR');
 
             }else{
-            /**
-             * 不是默认 AND
-             */
-                $judgeAndStr = '';
-                $judgeAndStr .=" {$k} = :{$k} AND";
                 /**
-                 * 切割
+                 * 其他 and
                  */
-                $judgeAndStr = rtrim($judgeAndStr,'AND');
+                /**
+                 * 判断是否是array
+                 *
+                 */
+                if(is_array($v)){
+                    $judgeUnknownStr = '';
+                    $judgeUnknown = strtoupper($v[0]);
+                    $judgeUnknownValue = $v[1];
+                    /**
+                     * 拼接
+                     */
+
+                    if($judgeUnknown == 'IN'){
+
+                        foreach ($judgeUnknownValue as $ink =>$inv){
+
+                            $judgeUnknownStr .=" :{$k}in{$ink} ,";
+                            /**
+                             * 数据
+                             */
+                            $this->execute_bindValue[':'.$k.'in'.$ink] = $inv;
+                        }
+                        $judgeUnknownARR [] = "{$k} {$judgeUnknown} (".rtrim($judgeUnknownStr,',').') ';
+
+                    }else {
+                        /**
+                         * 非in  表达式查询
+                         */
+                        $expression = array_search(strtoupper($judgeUnknown),$this->expression);
+                        $judgeUnknownARR []="  {$k} {$expression} :{$k}{$judgeUnknown} ";
+                        /**
+                         * 准备数据
+                         */
+                        $this->execute_bindValue[':'.$k.$judgeUnknown] = $judgeUnknownValue;
+                    }
+
+                }else{
+                    /**
+                     * 不是默认 =
+                     */
+                    $judgeAndARR[] =" {$k} = :{$k} ";
+
+                    $this->execute_bindValue[':'.$k] = $v;
+
+                }
             }
+        }
 
-            if(empty($judgeAndStr) && empty($judgeUnknownStr)){
-                echo '错误';
-            }else{
-                $WERE = $judgeAndStr.' AND '.$judgeUnknownStr;
+        $SQL = ' ';
+
+        /**
+         * 拼接
+         */
+        /**
+         * or
+         */
+        if(isset($judgeorstr)){
+
+            foreach ($judgeorstr as $sqlor){
+
+                $SQL .= ' ( '.$sqlor.') AND';
+
+            }
+        }
+
+        /**
+         * f  = 条件
+         */
+
+        if(isset($judgeUnknownARR)){
+
+            foreach ($judgeUnknownARR as $sqjudge){
+
+                $SQL .= ' ( '.$sqjudge.') AND';
             }
 
         }
 
-        var_dump($WERE);
+        /**
+         * =
+         */
 
-        return $WERE;
+        if(isset($judgeAndARR)){
 
+            foreach ($judgeAndARR as $sqjAnd){
+
+                $SQL .= '( '.$sqjAnd.') AND';
+            }
+        }
+        $SQL = rtrim($SQL,'AND');
+        $this->sql = $SQL;
     }
 
+    /**
+     * 甚至需要查询的field
+     */
+    public function field($data)
+    {
+        $field = '';
+        foreach ($data as $k=>$v){
+
+            if(is_int($k)){
+                $field .= $v.', ';
+            }else{
+                $field .= $k.' as '.$v;
+            }
+        }
+        $this->field = $field;
+        return $this;
+    }
 
     /**
      * 思考

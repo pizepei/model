@@ -7,6 +7,8 @@
  * @title    文件缓存驱动
  */
 namespace pizepei\model\cache\drive;
+use pizepei\func\Func;
+
 class File
 {
     /**
@@ -82,8 +84,11 @@ class File
          * 缓存路径
          */
         static::$targetDir = $config['targetDir'].'cache'.DIRECTORY_SEPARATOR.static::$typeCache.DIRECTORY_SEPARATOR;
-
-        static::createDir(static::$targetDir);
+        /**
+         * 文件处理类
+         *  创建目录方法
+         */
+        Func:: M('file') ::createDir(static::$targetDir);
 
         static::$key = $key;
         /**
@@ -91,16 +96,18 @@ class File
          */
         if(is_array($key) && count($key) == 2){
             static::$group = $key[0];
-            static::$key = $key[0];
+            static::$key = $key[1];
         }
         /**
          * md5
          */
         static::$md5key =  md5(static::$key );
         /**
-         * 有效期
+         * 有效期   0永久
          */
-        static::$period = time()+$period;
+        if($period != 0){
+            static::$period = time()+$period;
+        }
         /**
          * 文件名称
          */
@@ -111,25 +118,21 @@ class File
         static::$path = static::$targetDir.static::$fileName;
 
         static::$data = ['data'=>$data,'period'=>static::$period];
-
         return true;
     }
 
     /**
      * GET初始化配置
      * @param $key  需要查询的key
-     * @param $wildcard  通配符 用来匹配对应的key
      * @param $config 配置
      * @return bool
      */
-    public static function initGet($key,$wildcard,$config)
+    public static function initGet($key,$config)
     {
         /**
          * 缓存路径
          */
         static::$targetDir = $config['targetDir'].'cache'.DIRECTORY_SEPARATOR.static::$typeCache.DIRECTORY_SEPARATOR;
-
-        static::createDir(static::$targetDir);
 
         static::$key = $key;
         /**
@@ -137,16 +140,12 @@ class File
          */
         if(is_array($key) && count($key) == 2){
             static::$group = $key[0];
-            static::$key = $key[0];
+            static::$key = $key[1];
         }
         /**
          * md5
          */
         static::$md5key =  md5(static::$key );
-        /**
-         * 通配符
-         */
-        static::$wildcard = $wildcard;
         /**
          * 文件名称
          */
@@ -158,19 +157,6 @@ class File
 
         return true;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -187,34 +173,57 @@ class File
             /**
              * 删除缓存
              */
-            $result = unlink(static::$path);
+            $result = @unlink(static::$path);
         }else{
             /**
              * 设置缓存
              */
-            $result = file_put_contents(static::$path,static::$data);
-
+            $result = file_put_contents(static::$path,serialize(static::$data));
         }
         /**
          * 清除 static  信息
          * 防止数据错误
          */
         static::staticEmpty();
-
         return $result;
     }
 
     /**
      * 获取缓存
-     * @param $key
+     * @param $key  需要查询的key
+     * @param $config 配置
+     * @return bool
      */
-    public static function get($key)
+    public static function get($key,$config)
     {
+        static::initGet($key,$config);
 
+        if(file_exists(static::$path )){
+            /**
+             * 获取数据
+             */
+            static:: $data = unserialize(file_get_contents(static::$path));
 
-
-
-
+            if(static:: $data['period'] >time() || static:: $data['period']==0 ){
+                $data = static:: $data['data'];
+                /**
+                 * 清除 static  信息
+                 * 防止数据错误
+                 */
+                static::staticEmpty();
+                return $data;
+            }
+            /**
+             * 删除
+             */
+            unlink(static::$path);
+        }
+        /**
+         * 清除 static  信息
+         * 防止数据错误
+         */
+        static::staticEmpty();
+        return NULL;
 
     }
 
@@ -228,47 +237,6 @@ class File
         static::$key = null;
         static::$data = null;
     }
-
-    /**
-     * 判断目录是否存在
-     * 不存在创建
-     * @param $Dir
-     */
-    private static function createDir($dir, $mode = 0777)
-    {
-            if (is_dir($dir) || @mkdir($dir, $mode)) return TRUE;
-            if (!static::createDir(dirname($dir), $mode)) return FALSE;
-            return @mkdir($dir, $mode);
-
-    }
-
-
-    protected $arr = array();
-
-    function findFile($flodername, $filename)
-    {
-        if (!is_dir($flodername)) {
-            return "不是有效目录";
-        }
-        if ($fd = opendir($flodername)) {
-            while($file = readdir($fd)) {
-                if ($file != "." && $file != "..") {
-                    $newPath = $flodername.'/'.$file;
-                    if (is_dir($newPath)) {
-                        $this->findFile($newPath, $filename);
-                    }
-                    if ($file == $filename) {
-                        $this->arr[] = $newPath;
-                    }
-                }
-            }
-        }
-        return $this->arr;
-
-    }
-
-
-
 
 
 }

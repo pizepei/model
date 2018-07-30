@@ -8,6 +8,8 @@ namespace pizepei\model\cache;
 use pizepei\config\Config;
 use pizepei\model\cache\drive\File;
 use pizepei\model\cache\drive\Redis;
+use pizepei\func\Func;
+
 class Cache{
     /**
      * 文件缓存目录
@@ -55,18 +57,20 @@ class Cache{
         /**
          * 序列化数据
          */
-        if($data == null){
-            self::$data = $data;
-        }else{
-            self::$data = serialize ($data);
-        }
+         self::$data = $data;
+
+//        if($data == null){
+//            self::$data = $data;
+//        }else{
+//            self::$data = serialize ($data);
+//        }
 
     }
 
     /**
      * 设置缓存
      */
-    public static function set($key,$data,$period=100){
+    public static function set($key,$data,$period=0,$type='sys'){
         /**
          * 初始化
          */
@@ -75,40 +79,28 @@ class Cache{
          * 判断缓存类型
          *  注意自动加载无法通过use 命名空间加载，只能拼接
          */
-        $class = 'pizepei\model\cache\drive\\'.ucfirst(self::$config['driveType']);
+        $class = 'pizepei\model\cache\drive\\'.ucfirst($type).ucfirst(self::$config['driveType']);
         return $class::set(self::$key,self::$data,self::$period,self::$config);
 
     }
-
-    /**
-     * 设置DB缓存
-     */
-    public static function dbSet($key,$data,$period=100){
-        /**
-         * 初始化
-         */
-        self::init($key,$data,$period);
-        /**
-         * 判断缓存类型driveType
-         *  注意自动加载无法通过use 命名空间加载，只能拼接
-         *
-         */
-        $class = 'pizepei\model\cache\drive\Db'.ucfirst(self::$config['driveType']);
-        return $class::set(self::$key,self::$data,self::$period,self::$config);
-
-    }
-
-
-
-
     /**
      * 获取缓存
      * @param $key
      */
-    public static function get($key)
+    public static function get($key,$type='sys')
     {
+        /**
+         * 获取缓存配置
+         */
+        self::$config = Config::UNIVERSAL['cache'];
+        /**
+         * 初始化数据
+         */
+        self::$key = $key;
 
+        $class = 'pizepei\model\cache\drive\\'.ucfirst($type).ucfirst(self::$config['driveType']);
 
+        return $class::get(self::$key,self::$config);
 
 
     }
