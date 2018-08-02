@@ -222,6 +222,7 @@ class Db
          */
         self::$alterConfig = array_merge( Dbtabase::DBTABASE,self::$alterConfig);
 
+
         /**
          * 初始化表名称
          */
@@ -269,10 +270,10 @@ class Db
             /**
              * $dsn 连接信息
              * username 数据库连接用户名
-             * password  对应的密码
-             * self::$alterParams 连接参数
+             * password  对应的密码params
+             * params 连接参数
              **/
-            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'],self::$alterParams); //初始化一个PDO对象
+            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'], self::$alterConfig['params']); //初始化一个PDO对象
             /**
              * 实例化模型类
              *      传如连接标识
@@ -462,7 +463,6 @@ class Db
          * 准备slq
          */
         $this->sql = 'SELECT '.$this->field.' FROM  `'.$this->table.'` WHERE ( `'.$this->INDEX_PRI.'` = :'.$this->INDEX_PRI.' )';
-
         /**
          * 准备变量
          */
@@ -565,7 +565,11 @@ class Db
             $this->execute_bindValue = null;
 
             if($create){
-                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+                /**
+                 *
+                 * \PDO::FETCH_ASSOC
+                 */
+                $data = $sql->fetchAll(); //获取所有
             }else{
                 echo 'SQL错误';
             }
@@ -769,7 +773,7 @@ class Db
             if(is_int($k)){
                 $field .= $v.', ';
             }else{
-                $field .= $k.' as '.$v;
+                $field .= $k.' as '.$v.', ';
             }
         }
         $field = rtrim($field,', ');
