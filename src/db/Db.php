@@ -19,12 +19,7 @@ class Db
         '<'=>'LT',//小于（<）
         '<='=>'ELT',//小于等于（<=）
     ];
-
-    /**
-     * 调试信息
-     * @var array
-     */
-    protected $debug = [];
+    private static $pdo = null;
 
     /**
      * @var string 表名称
@@ -163,13 +158,8 @@ class Db
      */
     protected $field = '*';
 
-    /**
-     * 变量绑定
-     * @var array
-     */
-    protected $execute_bindValue = [];
 
-    private function __construct($instance,$table)
+    public function __construct($instance,$table)
     {
         /**
          * 获取实例化后的类名称
@@ -195,22 +185,7 @@ class Db
         $this->instance = $instance;
         $this->showCreateTableCache();
     }
-
     /**
-     * 魔术方法
-     * @param $name
-     * @return null
-     */
-    public function  __get($name) {
-        if(isset($this->$name)) {
-            return $this->$name;
-        }
-        return null;
-    }
-
-
-    /**
-     * 初始化
      * @param null $table
      */
     public static function table($tabl)
@@ -221,7 +196,6 @@ class Db
          * 连接数据库
          */
         self::$alterConfig = array_merge( Dbtabase::DBTABASE,self::$alterConfig);
-
 
         /**
          * 初始化表名称
@@ -270,10 +244,10 @@ class Db
             /**
              * $dsn 连接信息
              * username 数据库连接用户名
-             * password  对应的密码params
-             * params 连接参数
+             * password  对应的密码
+             * self::$alterParams 连接参数
              **/
-            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'], self::$alterConfig['params']); //初始化一个PDO对象
+            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'],self::$alterParams); //初始化一个PDO对象
             /**
              * 实例化模型类
              *      传如连接标识
@@ -399,7 +373,7 @@ class Db
          */
         $this->table_describe_index = Cache::get(['table_describe_index',$this->table],'db');
         $this->table_describe = Cache::get(['table_describe',$this->table],'db');
-
+        var_dump($this->table_describe_index);
         if(!$this->table_describe || !$this->table_describe_index){
             /**
              * 获取完整的表结构
@@ -463,6 +437,7 @@ class Db
          * 准备slq
          */
         $this->sql = 'SELECT '.$this->field.' FROM  `'.$this->table.'` WHERE ( `'.$this->INDEX_PRI.'` = :'.$this->INDEX_PRI.' )';
+
         /**
          * 准备变量
          */
@@ -487,15 +462,9 @@ class Db
      */
     public function fetchAll()
     {
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` '.$this->forceIndex_sql.'  WHERE '.$this->sql;
+        echo $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
         return $this->constructorSend();
     }
-
-    /**
-     * 强制使用 index
-     * @var string
-     */
-    protected $forceIndex_sql = '';
     /**
      * 强制使用index
      */
@@ -507,7 +476,7 @@ class Db
             /**
              * 不是  变成array
              */
-            $data = [$data];
+            $data[] = $data;
         }
         $str = '';
         /**
@@ -530,17 +499,7 @@ class Db
         }
         $str = rtrim($str,',');
         $this->forceIndex_sql = ' force index('.$str.')';
-
-        return $this;
     }
-    protected $sqllog = [];
-    protected $bindValuelog = [];
-    /**受影响行
-     * @var string
-     */
-    protected $rowCount = '';
-    protected $rowCountlog = [];
-
     /**
      *构造器
      */
@@ -551,37 +510,17 @@ class Db
             /**
              * 准备sql
              */
-            $this->sqllog = $this->sql;
-            $sql = $this->instance->prepare($this->sql);
+             $sql = $this->instance->prepare($this->sql);
             /**
              * 绑定变量
              */
-            $this->bindValuelog[] = $this->execute_bindValue;
             $create = $sql->execute($this->execute_bindValue);
-            /**
-             * 清除变量和slq
-             */
-            $this->sql = '';
-            $this->execute_bindValue = null;
-
             if($create){
-                /**
-                 *
-                 * \PDO::FETCH_ASSOC
-                 */
-                $data = $sql->fetchAll(); //获取所有
+                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
             }else{
-                echo 'SQL错误';
+                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+                echo '查询错误';
             }
-            /**
-             * 受影响行
-             */
-            $this->rowCount = $sql->rowCount();
-            /**
-             * 保存本次实例sql操作
-             */
-//            $this->debug[] = $sql->debugDumpParams();
-            $sql->errorCode();
             /**
              * 统计提交
              */
@@ -725,43 +664,6 @@ class Db
         $this->sql = $SQL;
     }
 
-
-
-
-    public function update()
-    {
-
-//        UPDATE user
-//    SET appid = CASE id
-//        WHEN 2 THEN 'id2'
-//        WHEN 4 THEN 'id3'
-//        WHEN 5 THEN 'id5'
-//    END,
-//		appsecret = CASE id
-//        WHEN 2 THEN 'appsecret2'
-//        WHEN 4 THEN 'appsecret4'
-//        WHEN 5 THEN 'appsecret5'
-//    END
-//WHERE id IN (2,4,5)
-
-
-
-
-//        ' UPDATE '.$this->table. ' SET alexa=\'5000\', country=\'USA\'  WHERE name=\'菜鸟教程\';';
-
-
-
-    }
-
-    public function lock()
-    {
-
-//        FOR UPDATE
-
-    }
-
-
-
     /**
      * 甚至需要查询的field
      */
@@ -773,11 +675,9 @@ class Db
             if(is_int($k)){
                 $field .= $v.', ';
             }else{
-                $field .= $k.' as '.$v.', ';
+                $field .= $k.' as '.$v;
             }
         }
-        $field = rtrim($field,', ');
-
         $this->field = $field;
         return $this;
     }
