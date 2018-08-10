@@ -130,7 +130,6 @@ class Db
      */
     private static $setObjectPattern = true;
 
-
     /**
      * 获取完整的表结构
      */
@@ -157,6 +156,19 @@ class Db
      * @var string
      */
     protected $field = '*';
+
+
+    /**
+     * 历史slq
+     * @var array
+     */
+    protected $slqLog = [];
+
+    /**
+     * 历史变量
+     * @var array
+     */
+    protected $variableLog = [];
 
 
     public function __construct($instance,$table)
@@ -247,7 +259,7 @@ class Db
              * password  对应的密码
              * self::$alterParams 连接参数
              **/
-            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'],self::$alterParams); //初始化一个PDO对象
+            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'],self::$alterConfig['params']); //初始化一个PDO对象
             /**
              * 实例化模型类
              *      传如连接标识
@@ -373,7 +385,7 @@ class Db
          */
         $this->table_describe_index = Cache::get(['table_describe_index',$this->table],'db');
         $this->table_describe = Cache::get(['table_describe',$this->table],'db');
-        var_dump($this->table_describe_index);
+//        var_dump($this->table_describe_index);
         if(!$this->table_describe || !$this->table_describe_index){
             /**
              * 获取完整的表结构
@@ -431,7 +443,8 @@ class Db
          */
 
         if(empty($this->INDEX_PRI)){
-            echo '重键不存在（表结构中）';
+            throw new Exception('重键不存在（表结构中）');
+
         }
         /**
          * 准备slq
@@ -446,23 +459,22 @@ class Db
         return $this->constructorSend();
     }
 
-    /**
+    /*
      * 获取一条数据
      */
     public function fetch()
     {
-
-
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
+        return $this->constructorSend(false);
 
     }
-
 
     /**
      *获取所有数据
      */
     public function fetchAll()
     {
-        echo $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
         return $this->constructorSend();
     }
     /**
@@ -476,7 +488,7 @@ class Db
             /**
              * 不是  变成array
              */
-            $data[] = $data;
+            $data = [$data];
         }
         $str = '';
         /**
@@ -499,11 +511,12 @@ class Db
         }
         $str = rtrim($str,',');
         $this->forceIndex_sql = ' force index('.$str.')';
+        return $this;
     }
     /**
      *构造器
      */
-    public function constructorSend()
+    public function constructorSend($all = true)
     {
         //可以看到，两者的最后返回结果是不一样的，query 返回的是一个结果集，而execute 返回的是影响行数 或者 是插入数据的id ！~由此可以看出，query 拿来执行 select 更好一些，execute 哪里执行 update | insert | delete 更好些！~~
         try {
@@ -515,11 +528,34 @@ class Db
              * 绑定变量
              */
             $create = $sql->execute($this->execute_bindValue);
+
+
+            /**
+             * 历史slq
+             */
+             $this->slqLog[] = &$this->sql;
+             $GLOBALS['DBTABASE']['slqLog'] = &$this->sql;
+            /**
+             * 历史变量
+             * @var array
+             */
+
+            $this->variableLog = $this->execute_bindValue;
+            $GLOBALS['DBTABASE']['variableLog'] = &$this->execute_bindValue;
+
             if($create){
-                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+
+                if($all){
+                    $data = $sql->fetchAll(); //获取所有
+                }else{
+                    $data = $sql->fetch(); //获取一条数据
+                }
+
             }else{
-                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-                echo '查询错误';
+//                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+//                var_dump($this->execute_bindValue);
+                throw new \Exception('查询错误sql错误');
+
             }
             /**
              * 统计提交
@@ -599,8 +635,22 @@ class Db
                         /**
                          * 非in  表达式查询
                          */
-                        $expression = array_search(strtoupper($judgeUnknown),$this->expression);
-                        $judgeUnknownARR []="  {$k} {$expression} :{$k}{$judgeUnknown} ";
+
+
+                        $expression = array_search(strtoupper($judgeUnknown),$this->expression);//在数组中搜索键值 ""，并返回它的键名：
+
+                        if($expression == false){
+                            /**
+                             * 如果不在列表中
+                             *
+                             */
+
+                            $judgeUnknownARR []="  {$k} {$judgeUnknown}  :{$k}{$judgeUnknown} ";
+
+                        }else{
+                            $judgeUnknownARR []="  {$k} {$expression}  :{$k}{$judgeUnknown} ";
+                        }
+
                         /**
                          * 准备数据
                          */
@@ -678,7 +728,10 @@ class Db
                 $field .= $k.' as '.$v;
             }
         }
-        $this->field = $field;
+
+        $this->field = rtrim($field,', ');
+
+
         return $this;
     }
 
