@@ -33,73 +33,12 @@ class Db
 
     private static $dbName = null;
     /**
-     * @var 数据库连接配置
+     * @var array 数据库连接配置
      */
     private  $config = [];
 
     public static $alterConfig = [
- //        // 数据库类型
-//        'type'        => 'mysql',
-//        // 数据库连接DSN配置
-//        'dsn'         => '',
-//        // 服务器地址
-//        'hostname'    => '',
-//        // 数据库名
-//        'database'    => 'oauth',
-//        // 数据库用户名
-//        'username'    => 'oauth',
-//        // 数据库密码
-//        'password'    => '',
-//        // 数据库连接端口
-//        'hostport'    => '3306',
-//        // 数据库连接参数  参考资料http://php.net/manual/zh/pdo.setattribute.php
-//        'params'      => [
-//            /**
-//             * 是否保持长连接   是
-//             */
-//            \PDO::ATTR_PERSISTENT => true,
-//            /**
-//             *即由MySQL进行变量处理
-//             */
-//            \PDO::ATTR_EMULATE_PREPARES =>false,
-//            /**
-//             * 指定超时的秒数。并非所有驱动都支持此选项，这意味着驱动和驱动之间可能会有差异。比如，SQLite等待的时间达到此值后就放弃获取可写锁，但其他驱动可能会将此值解释为一个连接或读取超时的间隔。 需要 int 类型。
-//             */
-//            \PDO::ATTR_TIMEOUT => 3,
-//            /**
-//             * 数据库编码  同 $_pdo->query("SET NAMES utf8")
-//             */
-//            \PDO::MYSQL_ATTR_INIT_COMMAND=>'SET NAMES utf8',
-//            /**
-//             * PDO::ATTR_ERRMODE：错误报告。他的$value可为：
-//             *      PDO::ERRMODE_SILENT： 仅设置错误代码。
-//             *      PDO::ERRMODE_WARNING: 引发 E_WARNING 错误
-//             *      PDO::ERRMODE_EXCEPTION: 抛出 exceptions 异常。
-//             */
-//            \PDO::ATTR_ERRMODE =>\PDO::ERRMODE_EXCEPTION ,
-//        ],
-//        // 数据库连接编码默认
-//        'charset'     => 'utf8',
-//        // 数据库表前缀
-//        'prefix'      => '',
-//        // 数据库调试模式
-//        'debug'       => false,
-//        // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
-//        'deploy'      => 0,
-//        // 数据库读写是否分离 主从式有效
-//        'rw_separate' => false,
-//        // 读写分离后 主服务器数量
-//        'master_num'  => 1,
-//        // 指定从服务器序号
-//        'slave_no'    => '',
-//        // 是否严格检查字段是否存在
-//        'fields_strict'  => true,
-//        //是否保持长连接
-//        'persistent' => true,
-//        //实例化模式 true 重复使用对象  false 创建新对象
-//        'setObjectPattern'=>true,
     ];
-
     /**
      * 连接参数
      * @var array
@@ -111,7 +50,7 @@ class Db
      */
     private $options = [];
     /**
-     * @var Connection[] 数据库连接实例
+     * @var array instance 数据库连接实例
      */
     private  $instance = [];
 
@@ -157,63 +96,65 @@ class Db
      */
     protected $field = '*';
 
-
     /**
-     * 历史slq
+     * 当前模型历史sql
      * @var array
      */
-    protected $slqLog = [];
+    protected $sqlLog = [];
+
+    /**
+     * 当前sql
+     * @var array
+     */
+    protected $sql = '';
 
     /**
      * 历史变量
      * @var array
      */
     protected $variableLog = [];
+    /**
+     * 绑定value
+     * @var array
+     */
+    protected $execute_bindValue = [];
+    /**
+     * 主键
+     * @var string
+     */
+    protected $INDEX_PRI = '';
+
+    /**
+     * where sql
+     * @var string
+     */
+    protected $wheresql = '';
 
 
     public function __construct($instance,$table)
     {
-        /**
-         * 获取实例化后的类名称
-         */
-        $ClassName =explode('\\', get_called_class() );
-        $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
-        $strlen = strlen($ClassName);
-        $tablestr = '';
-        for ($x=0; $x<=$strlen-1; $x++)
-        {
-            $str =ord($ClassName{$x});
-            if($str>64 && $str <91 ){
-                $tablestr  .= '_'.strtolower($ClassName{$x});
-            }else{
-                $tablestr .=$ClassName{$x};
-            }
-        }
-        if($ClassName =='Db'){
-            $this->table = $table;
-        }else{
-            $this->table = $tablestr;
-        }
+
+        $this->table = $table;
         $this->instance = $instance;
         $this->showCreateTableCache();
     }
     /**
      * @param null $table
      */
-    public static function table($tabl)
+    public static function table($table ='')
     {
+
+
 
         /**
          * 合并配置
          * 连接数据库
          */
         self::$alterConfig = array_merge( Dbtabase::DBTABASE,self::$alterConfig);
-
         /**
-         * 初始化表名称
+         * 获取表名称
          */
-        self::$altertabl = self::$alterConfig['prefix'].$tabl;
-
+        self::getTable($table);
         /**
          * type 数据库类型
          * host 数据库主机名
@@ -271,13 +212,49 @@ class Db
         }
 
     }
+
     /**
-     * @param $array
+     * 获取表名称
+     * @param $tabl
      */
-    public  function getAttribute($array)
+    protected static function getTable($table)
     {
-        $this->instance->getAttribute($array);
+            /**
+             * 获取实例化后的类名称
+             */
+            $ClassName =explode('\\', get_called_class() );
+            $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
+            $strlen = strlen($ClassName);
+            $tablestr = '';
+            /**
+             * 处理大小写和下划线
+             */
+            for ($x=0; $x<=$strlen-1; $x++)
+            {
+                $str =ord($ClassName{$x});
+                if($str>64 && $str <91 ){
+                    $tablestr  .= '_'.strtolower($ClassName{$x});
+                }else{
+                    $tablestr .=$ClassName{$x};
+                }
+            }
+            /**
+             * 拼接
+             */
+            if($ClassName =='db'){
+                self::$altertabl = self::$alterConfig['prefix'].$table;
+            }else{
+                self::$altertabl = self::$alterConfig['prefix'].$tablestr;
+            }
     }
+
+//    /**
+//     * @param $array
+//     */
+//    public  function getAttribute($array)
+//    {
+//        $this->instance->getAttribute($array);
+//    }
     /**
      * 创建返回对象
      * @return bool|static
@@ -386,6 +363,8 @@ class Db
         $this->table_describe_index = Cache::get(['table_describe_index',$this->table],'db');
         $this->table_describe = Cache::get(['table_describe',$this->table],'db');
 //        var_dump($this->table_describe_index);
+//        var_dump($this->table_describe);
+//        var_dump($describeArrar);
         if(!$this->table_describe || !$this->table_describe_index){
             /**
              * 获取完整的表结构
@@ -397,12 +376,13 @@ class Db
             $indexArrar = [];
 
             foreach ($create as $key =>$value){
-                $describeArrar[$value['Field']] = [
-                    'Type',$value['Type'],//数据结构
-                    'Null',$value['Null'],//是否为null   NO  YES
-                    'Key',$value['Key'],//index 类型
-                    'Default',$value['Default'],//默认值
-                ];
+                $describeArrar[$value['Field']] = $value;
+//                [
+//                    'Type'=>$value['Type'],//数据结构
+//                    'Null'=>$value['Null'],//是否为null   NO  YES
+//                    'Key'=>$value['Key'],//index 类型
+//                    'Default'=>$value['Default'],//默认值
+//                ];
                 /**
                  * 获取index
                  */
@@ -416,6 +396,10 @@ class Db
             /**
              * 缓存
              */
+
+
+
+
             Cache::set(['table_describe_index',$this->table],$this->table_describe_index,0,'db');
             Cache::set(['table_describe',$this->table],$this->table_describe,0,'db');
         }
@@ -443,7 +427,7 @@ class Db
          */
 
         if(empty($this->INDEX_PRI)){
-            throw new Exception('重键不存在（表结构中）');
+            throw new \Exception('重键不存在（表结构中）');
 
         }
         /**
@@ -458,15 +442,13 @@ class Db
 
         return $this->constructorSend();
     }
-
     /*
      * 获取一条数据
      */
     public function fetch()
     {
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
         return $this->constructorSend(false);
-
     }
 
     /**
@@ -474,7 +456,7 @@ class Db
      */
     public function fetchAll()
     {
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->sql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
         return $this->constructorSend();
     }
     /**
@@ -514,35 +496,41 @@ class Db
         return $this;
     }
     /**
-     *构造器
+     *查询构造器
      */
     public function constructorSend($all = true)
     {
         //可以看到，两者的最后返回结果是不一样的，query 返回的是一个结果集，而execute 返回的是影响行数 或者 是插入数据的id ！~由此可以看出，query 拿来执行 select 更好一些，execute 哪里执行 update | insert | delete 更好些！~~
         try {
             /**
+             * 保存历史sql数据
+             */
+            $GLOBALS['DBTABASE']['sqlLog'][] = ['sql'=>$this->sql,'value'=>$this->execute_bindValue];
+            /**
              * 准备sql
              */
-             $sql = $this->instance->prepare($this->sql);
+            echo$this->sql;
+
+            $sql = $this->instance->prepare($this->sql);
+            /**
+             * 历史sql
+             */
+            $this->sqlLog[] = &$this->sql;
+            //清空sql
+            $this->sql = '';
+
             /**
              * 绑定变量
              */
+//            var_dump($this->execute_bindValue);
             $create = $sql->execute($this->execute_bindValue);
-
-
-            /**
-             * 历史slq
-             */
-             $this->slqLog[] = &$this->sql;
-             $GLOBALS['DBTABASE']['slqLog'] = &$this->sql;
             /**
              * 历史变量
              * @var array
              */
-
-            $this->variableLog = $this->execute_bindValue;
-            $GLOBALS['DBTABASE']['variableLog'] = &$this->execute_bindValue;
-
+            $this->variableLog[] = $this->execute_bindValue;
+            //清空value
+            $this->execute_bindValue =[];
             if($create){
 
                 if($all){
@@ -552,15 +540,68 @@ class Db
                 }
 
             }else{
-//                $data = $sql->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-//                var_dump($this->execute_bindValue);
                 throw new \Exception('查询错误sql错误');
-
             }
             /**
              * 统计提交
              */
             return $data;
+        } catch (\PDOException $e) {
+            die ("Error!: " . $e->getMessage() . "<br/>");
+        }
+    }
+
+
+    /**
+     *删除、更新插入 构造器
+     */
+    public function constructorSendUpdate($type = true)
+    {
+        try {
+
+            $GLOBALS['DBTABASE']['sqlLog'][] = ['sql'=>$this->sql,'value'=>$this->execute_bindValue];
+
+            /**
+             * 准备sql
+             */
+            $sql = $this->instance->prepare($this->sql);
+            /**
+             * 历史slq
+             */
+            $this->sqlLog[] = &$this->sql;
+            //清空sql
+            $this->sql = '';
+
+            /**
+             * 绑定变量
+             */
+            $create = $sql->execute($this->execute_bindValue);
+
+            /**
+             * 历史变量
+             * @var array
+             */
+            $this->variableLog[] = $this->execute_bindValue;
+            //清空value
+            $this->execute_bindValue =[];
+
+            if($create){
+                /**
+                 * 判断是更新还是插入
+                 */
+                if($type){
+                    /**
+                     * 更新返回受影响行
+                     */
+                    return $sql->rowCount();
+                }else{
+                    $this->instance->lastInsertId();
+                    //获取最后一个插入数据的ID值
+                    return $this->instance->lastInsertId();
+                }
+            }else{
+                throw new \Exception('查询错误sql错误');
+            }
 
         } catch (\PDOException $e) {
             die ("Error!: " . $e->getMessage() . "<br/>");
@@ -574,8 +615,10 @@ class Db
         $this->spliceWhere($where);
         return $this;
     }
+
     /**
-     *
+     * 拼接sql Where
+     * @param array $where
      */
     public function spliceWhere($where = array())
     {
@@ -589,13 +632,32 @@ class Db
                  */
                 $orstr = '';
                 foreach ($kk as $ork=>$orv){
-                    /**
-                     * 拼接
-                     */
-                    $orstr .='  ' .$orv.' = :'.$orv.$ork.' OR';
+
                     /**
                      * 准备数据
                      */
+                    /**
+                     * 如果是数组
+                     * $where['ip|test'] = ['LIKE','%3'];
+                     */
+                    if(is_array($v)){
+
+                        $expression = array_search(strtoupper($v[0]),$this->expression);//在数组中搜索键值 ""，并返回它的键名：
+
+                        if($expression == false){
+                            $orstr .='  ' .$orv.' '.strtoupper($v[0]).' :'.$orv.$ork.' OR';
+                        }else{
+                            $orstr .='  ' .$orv.' '.$expression.' :'.$orv.$ork.' OR';
+                        }
+                        $v = $v[1];
+
+
+                    }else{
+                        /**
+                         * 拼接
+                         */
+                        $orstr .='  ' .$orv.' = :'.$orv.$ork.' OR';
+                    }
                     $this->execute_bindValue[':'.$orv.$ork] = $v;
                 }
                 /**
@@ -618,7 +680,6 @@ class Db
                     /**
                      * 拼接
                      */
-
                     if($judgeUnknown == 'IN'){
 
                         foreach ($judgeUnknownValue as $ink =>$inv){
@@ -635,8 +696,6 @@ class Db
                         /**
                          * 非in  表达式查询
                          */
-
-
                         $expression = array_search(strtoupper($judgeUnknown),$this->expression);//在数组中搜索键值 ""，并返回它的键名：
 
                         if($expression == false){
@@ -644,7 +703,6 @@ class Db
                              * 如果不在列表中
                              *
                              */
-
                             $judgeUnknownARR []="  {$k} {$judgeUnknown}  :{$k}{$judgeUnknown} ";
 
                         }else{
@@ -662,6 +720,7 @@ class Db
                      * 不是默认 =
                      */
                     $judgeAndARR[] =" {$k} = :{$k} ";
+
 
                     $this->execute_bindValue[':'.$k] = $v;
 
@@ -706,16 +765,15 @@ class Db
         if(isset($judgeAndARR)){
 
             foreach ($judgeAndARR as $sqjAnd){
-
                 $SQL .= '( '.$sqjAnd.') AND';
             }
         }
         $SQL = rtrim($SQL,'AND');
-        $this->sql = $SQL;
+        $this->wheresql = $SQL;
     }
 
     /**
-     * 甚至需要查询的field
+     * 设置需要查询的field
      */
     public function field($data)
     {
@@ -725,16 +783,311 @@ class Db
             if(is_int($k)){
                 $field .= $v.', ';
             }else{
-                $field .= $k.' as '.$v;
+                $field .= $k.' as '.$v.', ';
             }
         }
 
         $this->field = rtrim($field,', ');
-
-
         return $this;
     }
 
+    /**
+     * 批量插入或者插入
+     * @param $data
+     */
+    public function insert($data){
+//        /**
+//         * 判断是批量还是一条
+//         */
+        if(!isset($data[1])){
+            /**
+             * 一条
+             */
+            $data = [$data];
+        }
+        /**
+         * 过滤字段
+         */
+        $this->filtrationField($data);
+        /**
+         * 判断是否是更新
+         * 或者是插入
+         */
+        return $this->ifPudate($data);
+    }
+    /**
+     * 过滤字段
+     */
+    protected function filtrationField(&$data)
+    {
+        /**
+         * 获取表结构
+         */
+        $this->table_describe;
+
+        foreach ($data as $k=>$v){
+
+            foreach ($v as $kk=>$vv){
+                /**
+                 * 如果字段不存在
+                 */
+                if(!isset($this->table_describe[$kk])){
+                    /**
+                     * 删除
+                     */
+                    unset($data[$k][$kk]);
+                }
+            }
+
+        }
+
+    }
+    /**
+     * 根据主键 判断是否是更新 或者是插入
+     * @param $data
+     */
+    protected function ifPudate($data)
+    {
+        /**
+         * 判断是否存在主键
+         * $this->INDEX_PRI
+         */
+        if(isset($data[0][$this->INDEX_PRI])){
+            /**
+             * 为更新
+             */
+            return $this->updateAll($data);
+        }else{
+
+            /**
+             * 插入
+             */
+            return $this->insertAll($data);
+        }
+
+    }
+    /**
+     * 批量添加插入
+     * @param $data
+     */
+    protected function insertAll($data)
+    {
+        /**
+         * 插入
+         * INSERT INTO `ip_white` ( `ip` ) VALUES ('45466464546'),('45466464546');
+         */
+        /**
+         * 获取field
+         *
+         * 拼接对应数据
+         */
+        $field = '';
+        foreach ($data[0] as $kk=>$vv){
+            $field .= '`'.$kk.'`,';
+        }
+        $field = rtrim($field,',');
+        /**
+         * VALUES
+         */
+        $VALUES = '';
+        $ii = 1;
+        foreach ($data as $k=>$v){
+            $VALUES .= '( ';
+            foreach ($v as $kk=>$vv){
+                $this->execute_bindValue[':'.$kk.$ii] = $vv;
+                $VALUES .= ' :'.$kk.$ii.',';
+                $ii++;
+            }
+            $VALUES = rtrim($VALUES,',');
+
+            $VALUES .= '),';
+        }
+        $VALUES = rtrim($VALUES,',');
+
+        $this->sql = 'INSERT '.$this->table.' ('.$field.') VALUES '.$VALUES;
+
+        return $this->constructorSendUpdate(false);
+
+    }
+
+    /**
+     * 批量更新
+     * @param $data
+     */
+    protected function updateAll($data)
+    {
+
+        /**
+         *
+         * 意思  修改 ip_white表 id WHEN（=）  3357,3358,3359的数据对应的THEN值
+         * UPDATE ip_white
+        SET ip = CASE id
+        WHEN 3357 THEN 54545
+        WHEN 3358 THEN 5454545
+        WHEN 3359 THEN 5544545
+        END
+        WHERE id IN (3357,3358,3359)
+         *
+         */
+        /**
+         * 拼接sql
+         */
+        $sql = 'UPDATE '.$this->table.' ';
+        /**
+         * 拼接详细
+         */
+        $index = '';
+        foreach ($data as $k=>$v){
+            /**
+             * kk 是 Field
+             * $vv  value
+             */
+            foreach ($v as $kk=>$vv){
+                /**
+                 * 不是主键
+                 * 进行拼接
+                 */
+                if($kk != $this->INDEX_PRI){
+                    /**
+                     * 获取全部Field
+                     */
+                    /**
+                     * 获取对应id 的对应Field 需要修改成的什么
+                     * id=>value
+                     */
+                    $Field[$kk][$v[$this->INDEX_PRI]] = $vv;
+                }else{
+                    /**
+                     * 拼接id
+                     */
+                    $index .= $vv.',';
+
+                }
+            }
+        }
+
+        /**
+         * 拼接where
+         * WHERE id IN (3357,3358,3359)
+         */
+        $indexsql = ' WHERE '.$this->INDEX_PRI.' IN  ( '.rtrim($index,',').' )';
+        /**
+         * 拼接主体
+         *
+        UPDATE ip_white
+        SET ip = CASE id
+
+        WHEN 3358 THEN 10008
+        WHEN 3357 THEN 10007
+        WHEN 3359 THEN 10009
+        END,
+        create_time = CASE id
+        WHEN 3358 THEN 'tetst'
+        WHEN 3357 THEN 'test'
+        END
+        WHERE id IN (3358,3357,3359)
+         *
+         *
+        array (size=2)
+        'ip' =>
+        array (size=3)
+        3358 => int 10008
+        3357 => int 10007
+        3359 => int 10009
+        'create_time' =>
+        array (size=2)
+        3358 => string '2018-08-12 11:44:41' (length=19)
+        3357 => string '2018-08-12 11:44:41' (length=19)
+         *
+         */
+        $Fieldsql = '';
+        $i = 1;
+        foreach ($Field as $k=>$v){
+            if($i ==1) {
+                $Fieldsql .= 'SET '.$k.' = CASE ' . $this->INDEX_PRI . ' ';
+
+            }else{
+                $Fieldsql .= ' '.$k. ' = CASE ' . $this->INDEX_PRI . ' ';
+            }
+            $ii =1;
+            foreach ($v as $kk=>$vv){
+                $ii++;
+                $this->execute_bindValue[':when'.$k.$ii] = $kk;
+                $this->execute_bindValue[':when'.$k.'v'.$ii] = $vv;
+                $Fieldsql .=  'WHEN  :when'.$k.$ii.' THEN  :when'.$k.'v'.$ii.' ';
+
+            }
+            $Fieldsql .= ' END, ';
+            ++$i;
+        }
+        /**
+         * 拼接sql
+         */
+        $this->sql = $sql.rtrim($Fieldsql,', ').$indexsql;
+        return $this->constructorSendUpdate();
+
+    }
+
+    /**
+     * 添加(不判断是否是主键)
+     * @param $data
+     */
+    public function add($data)
+    {
+
+        /**
+         * 过滤字段
+         */
+        $this->filtrationField($data);
+
+        return $this->insertAll($data);
+    }
+    /**
+     * 删除
+     * 支持批量删除
+     * 支持软删除
+     * @param array $data  ['id']
+     * @param bool $type 默认直接删除 false 为软删除
+     */
+    public function del($data = array(),$type = true)
+    {
+//        DELETE FROM t_leave_info WHERE leave_info_id IN (640,634,633);
+
+        $sql = " DELETE FROM ".$this->table." WHERE ";
+
+        /**
+         * 判断是否存入主键参数
+         */
+        $sqlindex = '';
+        if($data !=[]){
+            $this->INDEX_PRI;
+            $sqlindex = $this->INDEX_PRI.' IN ( ';
+            foreach ($data as $k=>$v){
+                $this->execute_bindValue[':del'.$k] = $v;
+                $sqlindex .= ':del'.$k.',';
+            }
+            $sqlindex = rtrim($sqlindex,',');
+            $sqlindex .= ') ';
+        }
+        /**
+         * 拼接where
+         */
+
+        if($this->wheresql != ''){
+            /**
+             * 有 where条件
+             */
+            $this->sql = $sql.' '.$this->wheresql.' AND '.$sqlindex;
+
+        }else{
+            /**
+             * 没有where sql
+             */
+            $this->sql = $sql.' ( '.$sqlindex.' ) ';
+        }
+        return $this->constructorSendUpdate();
+
+    }
     /**
      * 思考
      *
@@ -746,13 +1099,11 @@ class Db
      *
      * 批量添加   修改
      *
-     *
      * 软删除
      *
      *过滤器
      *
      *
-     * 规定查询字段
      *
      *
      */
