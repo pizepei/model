@@ -10,7 +10,10 @@ use pizepei\func\Func;
 use pizepei\model\cache\Cache;
 class Db
 {
-
+    /**
+     * 查询表达式
+     * @var array
+     */
     protected  $expression= [
         '='=>'EQ',//等于
         '<>'=>'NEQ',//不等于（<>）
@@ -20,7 +23,6 @@ class Db
         '<='=>'ELT',//小于等于（<=）
     ];
     private static $pdo = null;
-
     /**
      * @var string 表名称
      */
@@ -29,8 +31,10 @@ class Db
      * @var string 表名称
      */
     private static $altertabl = '';
-
-
+    /**
+     * 数据库名称
+     * @var null
+     */
     private static $dbName = null;
     /**
      * @var array 数据库连接配置
@@ -68,7 +72,6 @@ class Db
      * @var bool 实例化模式 true 重复使用对象  false 创建新对象
      */
     private static $setObjectPattern = true;
-
     /**
      * 获取完整的表结构
      */
@@ -78,8 +81,6 @@ class Db
      * 获取完整的表  索引
      */
     protected $table_index = null;
-
-
     /**
      * 缓存完整的表结构
      */
@@ -97,11 +98,15 @@ class Db
     protected $field = '*';
 
     /**
+     * 所有field
+     * @var string
+     */
+    protected $fieldSrr = '*';
+    /**
      * 当前模型历史sql
      * @var array
      */
-    protected $sqlLog = [];
-
+    public $sqlLog = [];
     /**
      * 当前sql
      * @var array
@@ -123,17 +128,14 @@ class Db
      * @var string
      */
     protected $INDEX_PRI = '';
-
     /**
      * where sql
      * @var string
      */
     protected $wheresql = '';
 
-
     public function __construct($instance,$table)
     {
-
         $this->table = $table;
         $this->instance = $instance;
         $this->showCreateTableCache();
@@ -143,8 +145,6 @@ class Db
      */
     public static function table($table ='')
     {
-
-
 
         /**
          * 合并配置
@@ -212,7 +212,6 @@ class Db
         }
 
     }
-
     /**
      * 获取表名称
      * @param $tabl
@@ -247,14 +246,6 @@ class Db
                 self::$altertabl = self::$alterConfig['prefix'].$tablestr;
             }
     }
-
-//    /**
-//     * @param $array
-//     */
-//    public  function getAttribute($array)
-//    {
-//        $this->instance->getAttribute($array);
-//    }
     /**
      * 创建返回对象
      * @return bool|static
@@ -276,15 +267,12 @@ class Db
             return new static(self::$alterInstance[self::$dsn],self::$altertabl);
         }
     }
-
-
     /**
      * 获取表结构
      * 缓存表结构
      */
-    public function showCreateTableCache()
+    protected function showCreateTableCache()
     {
-
         /**
          * 缓存完整的表结构
          */
@@ -362,10 +350,8 @@ class Db
          */
         $this->table_describe_index = Cache::get(['table_describe_index',$this->table],'db');
         $this->table_describe = Cache::get(['table_describe',$this->table],'db');
-//        var_dump($this->table_describe_index);
-//        var_dump($this->table_describe);
-//        var_dump($describeArrar);
-        if(!$this->table_describe || !$this->table_describe_index){
+        $this->field = Cache::get(['table_describe_FieldStr',$this->table],'db');
+        if(!$this->table_describe || !$this->table_describe_index || !$this->field){
             /**
              * 获取完整的表结构
              */
@@ -374,8 +360,10 @@ class Db
 
             $describeArrar = [];
             $indexArrar = [];
+            $FieldStr = '';
 
             foreach ($create as $key =>$value){
+                $FieldStr .= $value['Field'].',';
                 $describeArrar[$value['Field']] = $value;
 //                [
 //                    'Type'=>$value['Type'],//数据结构
@@ -390,28 +378,25 @@ class Db
                     $indexArrar[$value['Field']] = $value['Key'];
                 }
             }
-
+            $this->field = rtrim($FieldStr,',');
+            $this->fieldSrr = rtrim($FieldStr,',');
             $this->table_describe_index = $indexArrar;
             $this->table_describe = $describeArrar;
             /**
              * 缓存
              */
-
-
-
-
-            Cache::set(['table_describe_index',$this->table],$this->table_describe_index,0,'db');
-            Cache::set(['table_describe',$this->table],$this->table_describe,0,'db');
+            Cache::set(['table_describe_FieldStr',$this->table], $this->field,7200,'db');
+            Cache::set(['table_describe_index',$this->table],$this->table_describe_index,7200,'db');
+            Cache::set(['table_describe',$this->table],$this->table_describe,7200,'db');
         }
-
         /**
          * 获取主键
          */
         $this->INDEX_PRI = array_search('PRI',$this->table_describe_index);
-
+        $this->fieldSrr = $this->field;
     }
-
     /**
+     * 通过id查询
      * @param $id
      */
     public function get($id)
@@ -427,20 +412,17 @@ class Db
          */
 
         if(empty($this->INDEX_PRI)){
-            throw new \Exception('重键不存在（表结构中）');
-
+            throw new \Exception('主键不存在（表结构中没有）');
         }
         /**
          * 准备slq
          */
         $this->sql = 'SELECT '.$this->field.' FROM  `'.$this->table.'` WHERE ( `'.$this->INDEX_PRI.'` = :'.$this->INDEX_PRI.' )';
-
         /**
          * 准备变量
          */
         $this->execute_bindValue = [':id'=>$id];
-
-        return $this->constructorSend();
+        return $this->constructorSend(false);
     }
     /*
      * 获取一条数据
@@ -450,7 +432,6 @@ class Db
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
         return $this->constructorSend(false);
     }
-
     /**
      *获取所有数据
      */
@@ -504,33 +485,37 @@ class Db
         try {
             /**
              * 保存历史sql数据
+             * 获取完整的sql$this->replace();
              */
-            $GLOBALS['DBTABASE']['sqlLog'][] = ['sql'=>$this->sql,'value'=>$this->execute_bindValue];
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $this->replace();
+
+            /**
+             * 查询缓存
+             * 如果有缓存就使用
+             */
+            if($this->cacheStatus){
+                $cacheData = $this->getCache();
+                if($cacheData){ return $cacheData;}
+            }
             /**
              * 准备sql
              */
-            echo$this->sql;
 
             $sql = $this->instance->prepare($this->sql);
             /**
              * 历史sql
              */
-            $this->sqlLog[] = &$this->sql;
-            //清空sql
-            $this->sql = '';
-
+            $this->sqlLog[] = $this->sql;
             /**
              * 绑定变量
              */
-//            var_dump($this->execute_bindValue);
             $create = $sql->execute($this->execute_bindValue);
             /**
              * 历史变量
              * @var array
              */
             $this->variableLog[] = $this->execute_bindValue;
-            //清空value
-            $this->execute_bindValue =[];
+
             if($create){
 
                 if($all){
@@ -538,10 +523,19 @@ class Db
                 }else{
                     $data = $sql->fetch(); //获取一条数据
                 }
-
+                /**
+                 * 缓存
+                 */
+                if($this->cacheStatus){
+                    $this->setCache($data);
+                }
             }else{
+                //清除sql影响
+                $this->eliminateSql();
                 throw new \Exception('查询错误sql错误');
             }
+            //清除sql影响
+            $this->eliminateSql();
             /**
              * 统计提交
              */
@@ -551,27 +545,17 @@ class Db
         }
     }
 
-
     /**
      *删除、更新插入 构造器
      */
     public function constructorSendUpdate($type = true)
     {
         try {
-
-            $GLOBALS['DBTABASE']['sqlLog'][] = ['sql'=>$this->sql,'value'=>$this->execute_bindValue];
-
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $this->replace();
             /**
              * 准备sql
              */
             $sql = $this->instance->prepare($this->sql);
-            /**
-             * 历史slq
-             */
-            $this->sqlLog[] = &$this->sql;
-            //清空sql
-            $this->sql = '';
-
             /**
              * 绑定变量
              */
@@ -582,9 +566,9 @@ class Db
              * @var array
              */
             $this->variableLog[] = $this->execute_bindValue;
-            //清空value
-            $this->execute_bindValue =[];
 
+            //清除sql影响
+            $this->eliminateSql();
             if($create){
                 /**
                  * 判断是更新还是插入
@@ -607,6 +591,20 @@ class Db
             die ("Error!: " . $e->getMessage() . "<br/>");
         }
     }
+
+    /**
+     * 清除sql影响
+     */
+    protected function eliminateSql()
+    {
+        $this->sql = '';
+        $this->wheresql = '';
+        $this->field = $this->fieldSrr;
+        $this->cacheStatus = false;
+        //清空value
+        $this->execute_bindValue =[];
+    }
+
     /**
      * 根据条件查询查询
      */
@@ -1087,6 +1085,117 @@ class Db
         }
         return $this->constructorSendUpdate();
 
+    }
+    /**
+     * 设置缓存关闭状态
+     * @var bool
+     */
+    protected $cacheStatus = false;
+    /**
+     * 缓存有效期
+     * @var int
+     */
+    protected $period = 0;
+    /**
+     * 缓存key
+     * @var null
+     */
+    protected $cacheKey = null;
+    /**
+     * 缓存操作
+     * 注意  ： 只有查询使用缓存，其他存在不使用缓存
+     * @param $key
+     * @param $period
+     * @return mixed
+     */
+    public function cache($key,$period = 0)
+    {
+        /**
+         * 设置缓存开启状态
+         */
+        $this->cacheStatus = true;
+        $this->period = $period;
+        $this->cacheKey = $key;
+        return $this;
+    }
+    /**
+     * 获取缓存
+     */
+    protected function getCache()
+    {
+        /**
+         * 判断是否分组
+         */
+        if(is_array($this->cacheKey) && count($this->cacheKey) == 2){
+            $group = $this->cacheKey[0];
+            $key = $this->cacheKey[1];
+            $this->cacheKey = [$group , $key.md5( $this->sql )];
+            $data = Cache::get($this->cacheKey,'db');
+        }else{
+            $this->cacheKey = $this->cacheKey.md5( $this->sql );
+            $data = Cache::get( $this->cacheKey,'db');
+
+        }
+        return  $data;
+    }
+    /**
+     * 设置缓存
+     */
+    protected function setCache($data)
+    {
+        return Cache::set($this->cacheKey,$data,$this->period,'db');
+    }
+
+    /**
+     * 完整sql
+     */
+    protected function replace()
+    {
+        $sql = $this->sql;
+        foreach ($this->execute_bindValue as $k=>$v){
+            $sql = str_replace($k,'`'.$v.'`',$sql);
+        }
+        $this->sqlLog[] = ['Sql'=>$sql,'Cache'=>$this->cacheStatus];
+        return $this->sqlLog;
+    }
+
+    /**
+     * 事服
+     */
+    /**
+     * 开启事务
+     */
+    public function beginTransaction()
+    {
+        if($this->cacheStatus){
+            throw new \Exception('开启事务不能使用缓存');
+        }
+        $this->instance->beginTransaction();
+    }
+    /**
+     * 检查驱动内的一个事务当前是否处于激活。此方法仅对支持事务的数据库驱动起作用。
+     */
+    public function inTransaction()
+    {
+        return $this->instance->inTransaction();
+    }
+    /**
+     * 提交事务
+     */
+    public function commit()
+    {
+        if($this->cacheStatus){
+            $this->instance->rollBack();
+            throw new \Exception('开启事务不能使用缓存[已经回滚事务]');
+        }
+        $this->instance->commit();
+    }
+    /**
+     * 回滚事务
+     */
+    public function rollBack()
+    {
+        $this->instance->rollBack();
     }
     /**
      * 思考

@@ -80,6 +80,7 @@ class File
      */
     public static function initSet($key,$data,$period,$config)
     {
+
         /**
          * 缓存路径
          */
@@ -154,7 +155,6 @@ class File
          * 完整路径+文件名称
          */
         static::$path = static::$targetDir.static::$fileName;
-
         return true;
     }
 
@@ -224,9 +224,7 @@ class File
          */
         static::staticEmpty();
         return NULL;
-
     }
-
     /**
      * 清空数据
      */
@@ -236,7 +234,14 @@ class File
         static::$fileName = null;
         static::$key = null;
         static::$data = null;
+        static::$targetDir = null;
+        static::$key = null;
+        static::$group = null;
+        static::$key = null;
+        static::$md5key = null;
+        static::$period = null;
+        static::$fileName = null;
+        static::$path = null;
     }
-
 
 }
