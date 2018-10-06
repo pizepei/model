@@ -58,17 +58,20 @@ class Cache{
          * 序列化数据
          */
          self::$data = $data;
-
 //        if($data == null){
 //            self::$data = $data;
 //        }else{
 //            self::$data = serialize ($data);
 //        }
-
     }
 
     /**
      * 设置缓存
+     * @param        $key
+     * @param        $data
+     * @param int    $period
+     * @param string $type
+     * @return mixed
      */
     public static function set($key,$data,$period=0,$type='sys'){
         /**
@@ -81,11 +84,13 @@ class Cache{
          */
         $class = 'pizepei\model\cache\drive\\'.ucfirst($type).ucfirst(self::$config['driveType']);
         return $class::set(self::$key,self::$data,self::$period,self::$config);
-
     }
+
     /**
      * 获取缓存
-     * @param $key
+     * @param        $key
+     * @param string $type
+     * @return mixed
      */
     public static function get($key,$type='sys')
     {
@@ -97,14 +102,9 @@ class Cache{
          * 初始化数据
          */
         self::$key = $key;
-
         $class = 'pizepei\model\cache\drive\\'.ucfirst($type).ucfirst(self::$config['driveType']);
-
         return $class::get(self::$key,self::$config);
-
-
     }
-
     /**
      * 清空数据
      */

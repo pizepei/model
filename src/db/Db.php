@@ -555,6 +555,7 @@ class Db
             /**
              * 准备sql
              */
+//            var_dump($GLOBALS['DBTABASE']['sqlLog'][$this->table]);
             $sql = $this->instance->prepare($this->sql);
             /**
              * 绑定变量
@@ -579,6 +580,7 @@ class Db
                      */
                     return $sql->rowCount();
                 }else{
+
                     $this->instance->lastInsertId();
                     //获取最后一个插入数据的ID值
                     return $this->instance->lastInsertId();
@@ -603,17 +605,26 @@ class Db
         $this->cacheStatus = false;
         //清空value
         $this->execute_bindValue =[];
+        /**
+         * 设置安全模式
+         */
+        $this->insertSafety = true;
+        $this->whereSafety = true;
+
     }
 
     /**
      * 根据条件查询查询
+     * @param array $where
+     * @param $safety 设置安全模式
+     * @return $this
      */
-    public function where(array $where)
+    public function where(array $where,$safety = true)
     {
+        $this->whereSafety = $safety;
         $this->spliceWhere($where);
         return $this;
     }
-
     /**
      * 拼接sql Where
      * @param array $where
@@ -789,11 +800,22 @@ class Db
         return $this;
     }
 
+
+    /**
+     *  默认开启安全模式
+     * @var bool
+     */
+    protected $insertSafety = true;
+
     /**
      * 批量插入或者插入
      * @param $data
+     * @param bool $safety 默认开启安全模式
+     * @return mixed
      */
-    public function insert($data){
+    public function insert($data,$safety = true){
+
+        $this->insertSafety = $safety;
 //        /**
 //         * 判断是批量还是一条
 //         */
@@ -892,8 +914,22 @@ class Db
         foreach ($data as $k=>$v){
             $VALUES .= '( ';
             foreach ($v as $kk=>$vv){
-                $this->execute_bindValue[':'.$kk.$ii] = $vv;
-                $VALUES .= ' :'.$kk.$ii.',';
+                if(is_array($vv)){
+
+                    if($this->insertSafety){
+                        throw new \Exception('非法的数据参数'.$vv[0]);
+                    }
+
+                    /**
+                     * 支持插入时使用函数
+                     */
+                    $this->execute_bindValue[':'.$kk.$ii] = $vv[1];
+                    $VALUES .= $vv[0].'( :'.$kk.$ii.' ),';
+                }else{
+                    $this->execute_bindValue[':'.$kk.$ii] = $vv;
+                    $VALUES .= ' :'.$kk.$ii.',';
+                }
+
                 $ii++;
             }
             $VALUES = rtrim($VALUES,',');
@@ -1010,9 +1046,27 @@ class Db
             $ii =1;
             foreach ($v as $kk=>$vv){
                 $ii++;
-                $this->execute_bindValue[':when'.$k.$ii] = $kk;
-                $this->execute_bindValue[':when'.$k.'v'.$ii] = $vv;
-                $Fieldsql .=  'WHEN  :when'.$k.$ii.' THEN  :when'.$k.'v'.$ii.' ';
+
+                if(is_array($vv)){
+
+                    if($this->insertSafety){
+                        throw new \Exception('非法的数据参数'.$vv[0]);
+                    }
+                    /**
+                     * 使用函数
+                     */
+                    $this->execute_bindValue[':when'.$k.$ii] = $kk;
+                    $this->execute_bindValue[':when'.$k.'v'.$ii] = $vv[1];
+                    $Fieldsql .=  'WHEN  :when'.$k.$ii.' THEN '.$vv[0].'( :when'.$k.'v'.$ii.') ';
+                }else{
+                    /**
+                     * 没有使用函数
+                     */
+                    $this->execute_bindValue[':when'.$k.$ii] = $kk;
+                    $this->execute_bindValue[':when'.$k.'v'.$ii] = $vv;
+                    $Fieldsql .=  'WHEN  :when'.$k.$ii.' THEN  :when'.$k.'v'.$ii.' ';
+                }
+
 
             }
             $Fieldsql .= ' END, ';
@@ -1134,7 +1188,6 @@ class Db
         }else{
             $this->cacheKey = $this->cacheKey.md5( $this->sql );
             $data = Cache::get( $this->cacheKey,'db');
-
         }
         return  $data;
     }
@@ -1200,6 +1253,8 @@ class Db
     /**
      * 思考
      *
+     * 表不存在创建表  创建表可创建默认数据
+     *
      * 简单的where   加是否过滤软删除
      *
      * 通过id 查询 表结构
@@ -1211,9 +1266,6 @@ class Db
      * 软删除
      *
      *过滤器
-     *
-     *
-     *
      *
      */
 

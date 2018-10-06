@@ -8,8 +8,8 @@
  */
 namespace pizepei\model\cache\drive;
 use pizepei\func\Func;
-
-class File
+use pizepei\model\cache\drive\Cache;
+class File implements  Cache
 {
     /**
      * 文件缓存时的文件名
@@ -64,7 +64,6 @@ class File
      * @var string
      */
     protected static $wildcard = '';
-
     /**
      * 缓存类型（比如db类 db类缓存与其他缓存区分 分组和key ）
      * @var string
@@ -80,7 +79,6 @@ class File
      */
     public static function initSet($key,$data,$period,$config)
     {
-
         /**
          * 缓存路径
          */
@@ -142,6 +140,8 @@ class File
         if(is_array($key) && count($key) == 2){
             static::$group = $key[0];
             static::$key = $key[1];
+        }else{
+            static::$group = 'public';
         }
         /**
          * md5
@@ -165,7 +165,6 @@ class File
      */
     public static function set($key,$data,$period,$config){
         static::initSet($key,$data,$period,$config);
-
         /**
          * 判断是删除缓存还是设置缓存
          */
@@ -197,7 +196,6 @@ class File
     public static function get($key,$config)
     {
         static::initGet($key,$config);
-
         if(file_exists(static::$path )){
             /**
              * 获取数据
