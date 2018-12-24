@@ -133,6 +133,20 @@ class Db
      * @var string
      */
     protected $wheresql = '';
+    /**
+     * 表结构
+     * @var array
+     */
+    protected $structure = [
+        'id'=>[
+            'TYPE'=>'int auto_increment',//数据类型（默认不为空）NOT NULL
+            'DEFAULT'=>'',//默认值
+            'COMMENT'=>'主键id',//字段说明
+            'AUTO_INCREMENT'=>true,//自增  默认不
+        ],
+        'PRIMARY'=>'id',//主键
+        'INDEX'=>['TYPE'=>'','NAME'=>'','FIELD'=>'','COMMENT'=>''],//索引 KEY `ip` (`ip`) COMMENT 'sss '
+    ];
 
     public function __construct($instance,$table)
     {
@@ -245,7 +259,11 @@ class Db
             }else{
                 self::$altertabl = self::$alterConfig['prefix'].$tablestr;
             }
+            /**
+             * 处理表数据
+             */
     }
+
     /**
      * 创建返回对象
      * @return bool|static
