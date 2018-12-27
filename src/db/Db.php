@@ -139,14 +139,49 @@ class Db
      */
     protected $structure = [
         'id'=>[
-            'TYPE'=>'int auto_increment',//数据类型（默认不为空）NOT NULL
+            'TYPE'=>'int',//数据类型（默认不为空）NOT NULL
             'DEFAULT'=>'',//默认值
             'COMMENT'=>'主键id',//字段说明
             'AUTO_INCREMENT'=>true,//自增  默认不
         ],
+        'version'=>[
+            'TYPE'=>'int',
+            'DEFAULT'=>0,//默认值
+            'COMMENT'=>'列数据版本号',//字段说明
+        ],
+        'update_time'=>[
+            'TYPE'=>'timestamp NOT NULL  ON UPDATE CURRENT_TIMESTAMP',
+            'DEFAULT'=>'CURRENT_TIMESTAMP',//默认值
+            'COMMENT'=>'更新时间',//字段说明
+        ],
+        'creation_time'=>[
+            'TYPE'=>'timestamp NOT NULL  ON UPDATE CURRENT_TIMESTAMP',
+            'DEFAULT'=>'CURRENT_TIMESTAMP',//默认值
+            'COMMENT'=>'创建时间',//字段说明
+        ],
         'PRIMARY'=>'id',//主键
         'INDEX'=>['TYPE'=>'','NAME'=>'','FIELD'=>'','COMMENT'=>''],//索引 KEY `ip` (`ip`) COMMENT 'sss '
     ];
+    /**
+     * @var string 表备注（不可包含@关键字）
+     */
+    protected $table_comment = '模拟表';
+    /**
+     * @var int 表版本（用来记录表结构版本）在表备注后面@$table_version
+     */
+    protected $table_version = 0;
+    /**
+     * @var array 表结构变更日志 版本号=>['表结构修改内容sql','表结构修改内容sql']
+     */
+    protected $table_structure_log = [
+        1=>[],
+        /**
+         * 修改的内容必须是完整的否则好缺失部分原来的结构
+         * ALTER TABLE `oauth_module`.`user_app` MODIFY COLUMN `nickname` timestamp(0) NULL DEFAULT NULL COMMENT '昵称' AFTER `mobile`;
+         * ALTER TABLE `数据库`.`表` MODIFY COLUMN `需要修改的字段` 修改后的内容 AFTER `字段在哪个字段后面`;
+         */
+    ];
+
 
     public function __construct($instance,$table)
     {
