@@ -163,7 +163,7 @@ class Db
         'INDEX'=>['TYPE'=>'','NAME'=>'','FIELD'=>'','COMMENT'=>''],//索引 KEY `ip` (`ip`) COMMENT 'sss '
     ];
     /**
-     * @var string 表备注（不可包含@关键字）
+     * @var string 表备注（不可包含@版本号关键字）
      */
     protected $table_comment = '模拟表';
     /**
@@ -187,8 +187,51 @@ class Db
     {
         $this->table = $table;
         $this->instance = $instance;
+        /**
+         * 判断表是否存在
+         */
+        $this->setStructure();
+        exit;
+        /**
+         * 初始化表数据（缓存）
+         */
         $this->showCreateTableCache();
     }
+
+    /**
+     * @Author: pizepei
+     * @Created: 2018/12/31 22:55
+     * @title  设置表结构
+     * @explain 判断表是否存在、创建表、判断表结构修改
+     *
+     */
+    protected function setStructure()
+    {
+        /**
+         * 判断表是否存在
+         * show databases like 'db_name';表
+         * show tables like 'table_name';数据库
+         */
+        $result_table = $this->instance->query("show databases like '".$this->table."'"); //返回一个PDOStatement对象
+        $result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+        if(empty($result_table)){
+            /**
+             * 表不存在
+             */
+        }else{
+            /**
+             * 表存在 获取版本号
+             * 版本号等于当前版本号$table_version 不做继续操作
+             * 版本号小于当前版本号$table_version
+             *      从当前$table_version的下一个版本开始执行修改sql$table_structure_log
+             *      修改到对应版本号
+             * 会不会出现同时创建或者修改
+             */
+            var_dump($result);
+
+        }
+    }
+
     /**
      * @param null $table
      */
