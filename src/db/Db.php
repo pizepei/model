@@ -217,6 +217,7 @@ class Db
         if(empty($result_table)){
             /**
              * 表不存在
+             * 拼接创建sql
              */
         }else{
             /**
