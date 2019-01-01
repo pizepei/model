@@ -209,9 +209,14 @@ class Db
      */
     protected $table_comment = '模拟表';
     /**
-     * @var int 表版本（用来记录表结构版本）在表备注后面@$table_version
+     * @var int 模型定义的 表版本（用来记录表结构版本）在表备注后面@$table_version
      */
     protected $table_version = 0;
+    /**
+     * 从表中获取的表版本
+     * @var int
+     */
+    protected $noe_table_version = 0;
     /**
      * @var array 表结构变更日志 版本号=>['表结构修改内容sql','表结构修改内容sql']
      */
@@ -354,8 +359,8 @@ class Db
                     throw new \Exception('Create Table inexistence  '."[$this->table]");
                 }
                 $explode = explode('@',$result_table[0]['Create Table']);
-                $table_version = (int)end($explode);
-                if($this->table_version == $table_version){
+                $this->noe_table_version = (int)end($explode);
+                if($this->table_version == $this->noe_table_version){
                     echo '版本号一致';
                 }else{
                     echo '版本号不一致';
