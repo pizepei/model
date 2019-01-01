@@ -279,7 +279,7 @@ class Db
                  * 表不存在
                  * 拼接创建sql
                  */
-                echo '表不存在';
+                //echo '表不存在';
                 /**
                  * 合并表结构
                  * $structureInit
@@ -336,9 +336,7 @@ class Db
                 $createTablrSql = rtrim($createTablrSql,','.PHP_EOL);
                 $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
                 $this->instance->query($createTablrSql); //创建表
-                //$result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
             }else{
-                //echo '表存在 获取版本号';
                 /**
                  * show  create  table  tablename;
                  * 表存在 获取版本号
@@ -347,7 +345,6 @@ class Db
                  *      从当前$table_version的下一个版本开始执行修改sql$table_structure_log
                  *      修改到对应版本号
                  * 会不会出现同时创建或者修改
-                 *
                  * alter table t_user comment  = '修改后的表注释信息(用户信息表)';
                  */
                 $result_table = $this->instance->query("show create table ".$this->table); //返回一个PDOStatement对象
