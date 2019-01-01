@@ -133,6 +133,39 @@ class Db
      * @var string
      */
     protected $wheresql = '';
+
+    /**
+     * 表结构(初始化)
+     * @var array
+     */
+    protected $structureInit = [
+        'version'=>[
+            'TYPE'=>'int',
+            'DEFAULT'=>0,//默认值
+            'COMMENT'=>'列数据版本号从0开始',//字段说明
+        ],
+        'update_time'=>[
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
+            'DEFAULT'=>false,//默认值
+            'COMMENT'=>'更新时间',//字段说明
+        ],
+        'creation_time'=>[
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'DEFAULT'=>false,//默认值
+            'COMMENT'=>'创建时间',//字段说明
+        ],
+        /**
+         * UNIQUE 唯一
+         * SPATIAL 空间
+         * NORMAL 普通 key
+         * FULLTEXT 文本
+         */
+        'INDEX'=>[
+            //  NORMAL KEY `create_time` (`create_time`) USING BTREE COMMENT '参数'
+            ['TYPE'=>'key','FIELD'=>'creation_time','NAME'=>'creation_time','USING'=>'BTREE','COMMENT'=>'创建时间'],
+        ],//索引 KEY `ip` (`ip`) COMMENT 'sss '
+    ];
+
     /**
      * 表结构
      * @var array
@@ -140,27 +173,36 @@ class Db
     protected $structure = [
         'id'=>[
             'TYPE'=>'int',//数据类型（默认不为空）NOT NULL
-            'DEFAULT'=>'',//默认值
+            'DEFAULT'=>false,//默认值
             'COMMENT'=>'主键id',//字段说明
             'AUTO_INCREMENT'=>true,//自增  默认不
         ],
         'version'=>[
             'TYPE'=>'int',
             'DEFAULT'=>0,//默认值
-            'COMMENT'=>'列数据版本号',//字段说明
+            'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
         'update_time'=>[
-            'TYPE'=>'timestamp NOT NULL  ON UPDATE CURRENT_TIMESTAMP',
-            'DEFAULT'=>'CURRENT_TIMESTAMP',//默认值
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
+            'DEFAULT'=>false,//默认值
             'COMMENT'=>'更新时间',//字段说明
         ],
         'creation_time'=>[
-            'TYPE'=>'timestamp NOT NULL  ON UPDATE CURRENT_TIMESTAMP',
-            'DEFAULT'=>'CURRENT_TIMESTAMP',//默认值
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'DEFAULT'=>false,//默认值
             'COMMENT'=>'创建时间',//字段说明
         ],
         'PRIMARY'=>'id',//主键
-        'INDEX'=>['TYPE'=>'','NAME'=>'','FIELD'=>'','COMMENT'=>''],//索引 KEY `ip` (`ip`) COMMENT 'sss '
+        /**
+         * UNIQUE 唯一
+         * SPATIAL 空间
+         * NORMAL 普通 key
+         * FULLTEXT 文本
+         */
+        'INDEX'=>[
+            //  NORMAL KEY `create_time` (`create_time`) USING BTREE COMMENT '参数'
+            ['TYPE'=>'key','FIELD'=>'creation_time','NAME'=>'creation_time','USING'=>'BTREE','COMMENT'=>'创建时间'],
+        ],//索引 KEY `ip` (`ip`) COMMENT 'sss '
     ];
     /**
      * @var string 表备注（不可包含@版本号关键字）
@@ -181,7 +223,11 @@ class Db
          * ALTER TABLE `数据库`.`表` MODIFY COLUMN `需要修改的字段` 修改后的内容 AFTER `字段在哪个字段后面`;
          */
     ];
-
+    /**
+     * 当前类名
+     * @var string
+     */
+    protected $ClassName = '';
 
     public function __construct($instance,$table)
     {
@@ -191,7 +237,7 @@ class Db
          * 判断表是否存在
          */
         $this->setStructure();
-        exit;
+        //exit;
         /**
          * 初始化表数据（缓存）
          */
@@ -212,31 +258,126 @@ class Db
          * show databases like 'db_name';表
          * show tables like 'table_name';数据库
          */
-        $result_table = $this->instance->query("show databases like '".$this->table."'"); //返回一个PDOStatement对象
+        $result_table = $this->instance->query("show tables like '".$this->table."'"); //返回一个PDOStatement对象
         $result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-        if(empty($result_table)){
-            /**
-             * 表不存在
-             * 拼接创建sql
-             */
-        }else{
-            /**
-             * 表存在 获取版本号
-             * 版本号等于当前版本号$table_version 不做继续操作
-             * 版本号小于当前版本号$table_version
-             *      从当前$table_version的下一个版本开始执行修改sql$table_structure_log
-             *      修改到对应版本号
-             * 会不会出现同时创建或者修改
-             */
-            var_dump($result);
+        /**
+         * 获取实例化后的类名称
+         */
+        $ClassName =explode('\\', get_called_class() );
+        $this->ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
+        /**
+         * 判断是否是db类
+         */
+        if($this->ClassName != 'db'){
+            if(empty($result_table)){
+                /**
+                 * 表不存在
+                 * 拼接创建sql
+                 */
+                echo '表不存在';
+                /**
+                 * 合并表结构
+                 * $structureInit
+                 */
+                if(isset($this->structure['INDEX'][0]['TYPE'])){
+                    foreach($this->structure['INDEX'] as $index){
+                        array_unshift($this->structureInit['INDEX'],$index);
+                    }
+                }
+                $this->structure  = array_merge($this->structure,$this->structureInit);
+
+                /**
+                 * 创建表
+                 */
+                $createTablrSql = "CREATE TABLE `".$this->table."`(";
+                foreach($this->structure as $key=>$value){
+                    if($key != 'PRIMARY' && $key != 'INDEX'){
+                        $value['AUTO_INCREMENT'] =$value['AUTO_INCREMENT']??false;
+                        if($value['AUTO_INCREMENT']){
+                            $value['AUTO_INCREMENT'] = 'AUTO_INCREMENT';
+                        }
+                        if(!$value['DEFAULT']){
+                            $value['DEFAULT'] = '';
+                        }else{
+                            $value['DEFAULT'] = " DEFAULT '".$value['DEFAULT']."' ";
+                        }
+                        $value['NULL'] = $value['NULL']??' NOT NULL ';
+
+                        $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
+                    }
+                }
+                if(is_array($this->structure['PRIMARY'])){
+                    $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY'][0].") COMMENT '".$this->structure['PRIMARY'][1]."',".PHP_EOL;
+                }else{
+                    $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY']."),".PHP_EOL;
+                }
+                //var_dump($createTablrSql);
+                if(isset($this->structure['INDEX'][0]['TYPE'])){
+
+                    //  NORMAL KEY `create_time` (`create_time`) USING BTREE COMMENT '参数'PHP_EOL
+                    foreach($this->structure['INDEX'] as $k=>$v){
+                        $v['NAME'] = $v['NAME']??'';
+                        $NAME = empty($v['NAME'])?'':"`".$v['NAME']."` ";
+
+                        $v['USING'] = $v['USING']??'';
+                        $USING = empty($v['USING'])?'':"USING ".$v['USING'];
+
+                        $v['COMMENT'] = $v['COMMENT']??'';
+                        $COMMENT = empty($v['COMMENT'])?'':"COMMENT '".$v['COMMENT']."'";
+
+                        $createTablrSql .=$v['TYPE']." ".$NAME." (".$v['FIELD'].") ".$USING.' '.$COMMENT.','.PHP_EOL;
+                    }
+                }
+                $createTablrSql = rtrim($createTablrSql,','.PHP_EOL);
+                $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
+                $this->instance->query($createTablrSql); //创建表
+                //$result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+            }else{
+                //echo '表存在 获取版本号';
+                /**
+                 * show  create  table  tablename;
+                 * 表存在 获取版本号
+                 * 版本号等于当前版本号$table_version 不做继续操作
+                 * 版本号小于当前版本号$table_version
+                 *      从当前$table_version的下一个版本开始执行修改sql$table_structure_log
+                 *      修改到对应版本号
+                 * 会不会出现同时创建或者修改
+                 *
+                 * alter table t_user comment  = '修改后的表注释信息(用户信息表)';
+                 */
+                $result_table = $this->instance->query("show create table ".$this->table); //返回一个PDOStatement对象
+                $result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+                /**
+                 * 获取版本号
+                 */
+                if(!isset($result_table[0]['Create Table'])){
+                    throw new \Exception('Create Table inexistence  '."[$this->table]");
+                }
+                $explode = explode('@',$result_table[0]['Create Table']);
+                $table_version = (int)end($explode);
+                if($this->table_version == $table_version){
+                    echo '版本号一致';
+                }else{
+                    echo '版本号不一致';
+                }
+                var_dump($table_version);
+
+            }
 
         }
+
     }
 
     /**
-     * @param null $table
+     * @Author: pizepei
+     * @Created: 2019/1/1 12:07
+     * @param string $table
+     * @param bool   $prefix
+     * @return bool|mixed|\pizepei\model\db\Db
+     * @title  方法标题（一般是方法的简称）
+     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
      */
-    public static function table($table ='')
+    public static function table($table ='',$prefix=true)
     {
 
         /**
@@ -247,7 +388,7 @@ class Db
         /**
          * 获取表名称
          */
-        self::getTable($table);
+        self::getTable($table,$prefix);
         /**
          * type 数据库类型
          * host 数据库主机名
@@ -305,11 +446,18 @@ class Db
         }
 
     }
+
     /**
-     * 获取表名称
-     * @param $tabl
+     * @Author: pizepei
+     * @Created: 2019/1/1 12:08
+     *
+     * @param $table
+     * @param $prefix
+     *
+     * @title  获取表名称
+     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
      */
-    protected static function getTable($table)
+    protected static function getTable($table,$prefix)
     {
             /**
              * 获取实例化后的类名称
@@ -317,6 +465,7 @@ class Db
             $ClassName =explode('\\', get_called_class() );
             $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
             $strlen = strlen($ClassName);
+
             $tablestr = '';
             /**
              * 处理大小写和下划线
@@ -334,7 +483,13 @@ class Db
              * 拼接
              */
             if($ClassName =='db'){
-                self::$altertabl = self::$alterConfig['prefix'].$table;
+                /**
+                 * 判断是否强制加表前缀
+                 */
+                self::$altertabl = $table;
+                if($prefix){
+                    self::$altertabl = self::$alterConfig['prefix'].$table;
+                }
             }else{
                 self::$altertabl = self::$alterConfig['prefix'].$tablestr;
             }
@@ -374,6 +529,7 @@ class Db
          * 缓存完整的表结构
          */
         $this->table_create = Cache::get(['table_create',$this->table],'db');
+        //var_dump($this->table_create);
         if(!$this->table_create){
             /**
              * 获取完整的表结构
