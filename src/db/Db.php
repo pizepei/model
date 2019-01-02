@@ -136,6 +136,10 @@ class Db
 
     /**
      * 表结构(初始化)
+     * 默认
+     *      version（列数据版本号从0开始）
+     *      update_time （更新时间）
+     *      creation_time （创建时间 默认NORMAL普通索引）
      * @var array
      */
     protected $structureInit = [
@@ -221,7 +225,16 @@ class Db
      * @var array 表结构变更日志 版本号=>['表结构修改内容sql','表结构修改内容sql']
      */
     protected $table_structure_log = [
-        1=>[],
+        0=>[
+            /**
+             * 注意：
+             *      格式为 ['表操作的字段','操作类型ADD、DROP、MODIFY、CHANGE','操作内容（为安全起见不包括alter table user）','修改说明','修改人']
+             */
+            ['new1','ADD','alter table user add COLUMN new1 VARCHAR(20) DEFAULT NULL','修改说明：增加user表的new1字段','pizepei'],
+            ['new1','DROP','alter table user DROP COLUMN new2','修改说明：删除一个字段','pizepei'],
+            ['new1','MODIFY','alter table user MODIFY new1 VARCHAR(10)','修改说明：修改一个字段的类型','pizepei'],
+            ['new1','CHANGE','alter table user CHANGE new1 new4 int;','修改说明：修改一个字段的名称，此时一定要重新指定该字段的类型','pizepei'],
+        ],
         /**
          * 修改的内容必须是完整的否则好缺失部分原来的结构
          * ALTER TABLE `oauth_module`.`user_app` MODIFY COLUMN `nickname` timestamp(0) NULL DEFAULT NULL COMMENT '昵称' AFTER `mobile`;
@@ -317,6 +330,9 @@ class Db
                     $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY']."),".PHP_EOL;
                 }
                 //var_dump($createTablrSql);
+                /**
+                 * 循环处理 index
+                 */
                 if(isset($this->structure['INDEX'][0]['TYPE'])){
 
                     //  NORMAL KEY `create_time` (`create_time`) USING BTREE COMMENT '参数'PHP_EOL
@@ -357,18 +373,109 @@ class Db
                 }
                 $explode = explode('@',$result_table[0]['Create Table']);
                 $this->noe_table_version = (int)end($explode);
-                if($this->table_version == $this->noe_table_version){
-                    echo '版本号一致';
-                }else{
-                    echo '版本号不一致';
+                if($this->table_version != $this->noe_table_version){
+                    //echo '版本号不一致';
+                    $this->versionUpdate();
                 }
-                var_dump($table_version);
+                //echo '版本号一致';
 
             }
 
         }
 
     }
+
+    /**
+     * 可操作的字段操作
+     */
+    const ALTER_TABLE_STRUCTURE = [
+        'ADD'=>' ADD COLUMN ',//增加
+        'DROP'=>' DROP COLUMN ',//删除
+        'MODIFY'=>' MODIFY ',//修改结构（不修改字段的名称）
+        'CHANGE'=>' CHANGE ',//完整的修改字段（包括字段的名称和结构）
+        'ADD-INDEX'=>' ADD ',//增加索引
+    ];
+    /**
+     * 版本更新
+     */
+    protected function versionUpdate()
+    {
+
+        /**
+         * 获取版本中间值
+         * 执行对应版本的修改sql
+         *      对应修改表版本号
+         * 删除表结构缓存
+         */
+        //var_dump($this->table_structure_log);
+        //echo '需要变更到的目标版本';
+        $strSql = 'ALTER TABLE '.$this->table.' ';
+        //echo '当前数据库表版本';
+        if($this->noe_table_version>=$this->table_version){
+            throw new \Exception("[$this->table] ".'table_version >= noe_table_version');
+        }
+        $i = $this->noe_table_version+1;
+        for($i;$i<=$this->table_version;$i++){
+
+            if(isset($this->table_structure_log[$i]) && is_array($this->table_structure_log[$i])){
+                /**
+                 * 开启事务
+                 */
+                //$this->beginTransaction();
+                $noe_sql_log = '';
+                foreach($this->table_structure_log[$i] as $key=>$value){
+                    /**
+                     * 判断是否是合法操作
+                     */
+                    if(!isset(self::ALTER_TABLE_STRUCTURE[$value[1]])){
+                        throw new \Exception("[$this->table] "."table_version-{$i}-[操作方法] illegality");
+                    }
+                    if(!isset($value[2])){
+                        throw new \Exception("[$this->table] "."table_version-{$i}-操作内容 illegality");
+                    }
+                    /**
+                     * 拼接sql
+                     */
+                    $noe_sql = $strSql;
+                    $noe_sql .=self::ALTER_TABLE_STRUCTURE[$value[1]].$value[2].';';
+                    /**
+                     * 执行操作
+                     */
+                    $result = $this->query($noe_sql);
+                }
+                /**
+                 * 修改版本号
+                 * alter table t_user comment  = '修改后的表注释信息(用户信息表)';
+                 */
+                $comment_sql = 'ALTER TABLE '.$this->table." COMMENT = '{$this->table_comment}@{$i}'";
+                $this->query($comment_sql);
+
+            }else{
+                //echo '版本不存在'.PHP_EOL;
+            }
+        }
+    }
+
+    /**
+     * 原生sql
+     * @param $sql
+     * @return mixed
+     */
+    public function query($sql)
+    {
+
+        try {
+            $result = $this->instance->query($sql); //返回一个PDOStatement对象
+            return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+        } catch (\PDOException $e) {
+            if($this->inTransaction()){
+                $this->rollBack();
+            }
+            die ("Error!: " . $e->getMessage() . "query<br/>");
+        }
+    }
+
+
 
     /**
      * @Author: pizepei
@@ -845,6 +952,9 @@ class Db
             }
 
         } catch (\PDOException $e) {
+            if($this->inTransaction()){
+                $this->rollBack();
+            }
             die ("Error!: " . $e->getMessage() . "<br/>");
         }
     }
@@ -1496,14 +1606,14 @@ class Db
             $this->instance->rollBack();
             throw new \Exception('开启事务不能使用缓存[已经回滚事务]');
         }
-        $this->instance->commit();
+        return $this->instance->commit();
     }
     /**
      * 回滚事务
      */
     public function rollBack()
     {
-        $this->instance->rollBack();
+        return $this->instance->rollBack();
     }
     /**
      * 思考
