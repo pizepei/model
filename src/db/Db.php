@@ -1284,6 +1284,10 @@ class Db
                     if($this->insertSafety){
                         throw new \Exception('非法的数据参数'.$vv[0]);
                     }
+                    /**
+                     * 判断当前模型当前字段是否是array类型  模型变量里面
+                     *      是就json编码
+                     */
 
                     /**
                      * 支持插入时使用函数
