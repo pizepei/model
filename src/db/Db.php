@@ -367,7 +367,6 @@ class Db
                 }
                 $createTablrSql = rtrim($createTablrSql,','.PHP_EOL);
                 $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
-                var_dump($createTablrSql);
 
                 $this->instance->query($createTablrSql); //创建表
                 /**
