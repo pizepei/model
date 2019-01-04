@@ -242,6 +242,15 @@ class Db
          */
     ];
     /**
+     * 初始化数据：表不存在时自动创建表然后自动插入$initData数据
+     *      支持多条
+     * @var array
+     */
+    protected $initData = [
+
+    ];
+
+    /**
      * 当前类名
      * @var string
      */
@@ -251,6 +260,7 @@ class Db
     {
         $this->table = $table;
         $this->instance = $instance;
+
         /**
          * 判断表是否存在
          */
@@ -321,6 +331,13 @@ class Db
                         }
                         $value['NULL'] = $value['NULL']??' NOT NULL ';
 
+                        if($value['TYPE'] == 'json'){
+                            if(self::$alterConfig['versions'] < 5.7){
+                                $value['TYPE'] = 'text';
+                            }
+                        }
+
+
                         $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
                     }
                 }
@@ -329,7 +346,6 @@ class Db
                 }else{
                     $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY']."),".PHP_EOL;
                 }
-                //var_dump($createTablrSql);
                 /**
                  * 循环处理 index
                  */
@@ -351,7 +367,15 @@ class Db
                 }
                 $createTablrSql = rtrim($createTablrSql,','.PHP_EOL);
                 $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
+                var_dump($createTablrSql);
+
                 $this->instance->query($createTablrSql); //创建表
+                /**
+                 * 插入初始化数据
+                 */
+                if(!empty($this->initData)){
+                    $this->insert($this->initData);
+                }
             }else{
                 /**
                  * show  create  table  tablename;
@@ -468,14 +492,15 @@ class Db
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
+            /**
+             * 判断是否存在事务
+             */
             if($this->inTransaction()){
                 $this->rollBack();
             }
             die ("Error!: " . $e->getMessage() . "query<br/>");
         }
     }
-
-
 
     /**
      * @Author: pizepei
@@ -1200,8 +1225,13 @@ class Db
          */
         return $this->ifPudate($data);
     }
+
     /**
-     * 过滤字段
+     * @Author: pizepei
+     * @Created: 2019/1/4 22:32
+     * @param $data
+     * @title  过滤字段
+     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
      */
     protected function filtrationField(&$data)
     {
@@ -1279,16 +1309,26 @@ class Db
         foreach ($data as $k=>$v){
             $VALUES .= '( ';
             foreach ($v as $kk=>$vv){
+                /**
+                 * 如果是数组 先判断这个字段是否支持json 是就json_encode
+                 */
                 if(is_array($vv)){
+                    /**
+                     * 判断是否是db类
+                     */
+                    if($this->ClassName =='db'){
+                        if($this->table_describe[$kk]['Type'] == 'json'){
+                            $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
+                        }
+                    }else if($this->structure[$kk]['TYPE'] == 'json') {
+                        $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
+                    }
+                }
 
+                if(is_array($vv)){
                     if($this->insertSafety){
                         throw new \Exception('非法的数据参数'.$vv[0]);
                     }
-                    /**
-                     * 判断当前模型当前字段是否是array类型  模型变量里面
-                     *      是就json编码
-                     */
-
                     /**
                      * 支持插入时使用函数
                      */
