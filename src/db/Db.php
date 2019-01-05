@@ -823,7 +823,7 @@ class Db
      */
     public function fetchAll()
     {
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql);
         return $this->constructorSend();
     }
     /**
