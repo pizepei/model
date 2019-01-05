@@ -585,7 +585,7 @@ class Db
      * @Created: 2019/1/1 12:08
      *
      * @param $table
-     * @param $prefix
+     * @param $prefix 是否使用表前缀
      *
      * @title  获取表名称
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
