@@ -50,6 +50,13 @@ class Model extends Db
         ],//索引 KEY `ip` (`ip`) COMMENT 'sss '
     ];
 
+    /**
+     * 初始化数据：表不存在时自动创建表然后自动插入$initData数据
+     *      支持多条
+     * @var array
+     */
+    protected $initData = [
 
+    ];
 
 }

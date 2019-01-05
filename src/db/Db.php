@@ -265,11 +265,11 @@ class Db
          * 判断表是否存在
          */
         $this->setStructure();
-        //exit;
         /**
          * 初始化表数据（缓存）
          */
         $this->showCreateTableCache();
+
     }
 
     /**
@@ -302,7 +302,6 @@ class Db
                  * 表不存在
                  * 拼接创建sql
                  */
-                //echo '表不存在';
                 /**
                  * 合并表结构
                  * $structureInit
@@ -368,7 +367,11 @@ class Db
                 $createTablrSql = rtrim($createTablrSql,','.PHP_EOL);
                 $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
 
-                $this->instance->query($createTablrSql); //创建表
+                $this->query($createTablrSql); //创建表
+                /**
+                 * 清空缓存完整的表结构并创建新的缓存
+                 */
+                $this->emptyStructureCache(true);
                 /**
                  * 插入初始化数据
                  */
@@ -386,7 +389,7 @@ class Db
                  * 会不会出现同时创建或者修改
                  * alter table t_user comment  = '修改后的表注释信息(用户信息表)';
                  */
-                $result_table = $this->instance->query("show create table ".$this->table); //返回一个PDOStatement对象
+                $result_table = $this->query("show create table ".$this->table); //返回一个PDOStatement对象
                 $result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
                 /**
                  * 获取版本号
@@ -399,6 +402,10 @@ class Db
                 if($this->table_version != $this->noe_table_version){
                     //echo '版本号不一致';
                     $this->versionUpdate();
+                    /**
+                     * 清空缓存完整的表结构
+                     */
+                    $this->emptyStructureCache(true);
                 }
                 //echo '版本号一致';
 
@@ -430,8 +437,6 @@ class Db
          *      对应修改表版本号
          * 删除表结构缓存
          */
-        //var_dump($this->table_structure_log);
-        //echo '需要变更到的目标版本';
         $strSql = 'ALTER TABLE '.$this->table.' ';
         //echo '当前数据库表版本';
         if($this->noe_table_version>=$this->table_version){
@@ -441,10 +446,7 @@ class Db
         for($i;$i<=$this->table_version;$i++){
 
             if(isset($this->table_structure_log[$i]) && is_array($this->table_structure_log[$i])){
-                /**
-                 * 开启事务
-                 */
-                //$this->beginTransaction();
+
                 $noe_sql_log = '';
                 foreach($this->table_structure_log[$i] as $key=>$value){
                     /**
@@ -480,6 +482,21 @@ class Db
     }
 
     /**
+     * 清空缓存完整的表结构
+     * @param $type true 清除后超级
+     */
+    protected function emptyStructureCache($type =false)
+    {
+        Cache::set(['table_create',$this->table],null,0,'db');
+        Cache::set(['table_index',$this->table],null,0,'db');
+        Cache::set(['table_describe_index',$this->table],null,0,'db');
+        Cache::set(['table_describe',$this->table],null,0,'db');
+        Cache::set(['table_describe_FieldStr',$this->table],null,0,'db');
+        if($type){
+            $this->showCreateTableCache();
+        }
+    }
+    /**
      * 原生sql
      * @param $sql
      * @return mixed
@@ -488,6 +505,8 @@ class Db
     {
 
         try {
+
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $sql;//记录sqlLog
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
@@ -662,7 +681,6 @@ class Db
          * 缓存完整的表结构
          */
         $this->table_create = Cache::get(['table_create',$this->table],'db');
-        //var_dump($this->table_create);
         if(!$this->table_create){
             /**
              * 获取完整的表结构
