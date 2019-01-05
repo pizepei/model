@@ -186,6 +186,11 @@ class Db
             'DEFAULT'=>0,//默认值
             'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
+        'del'=>[
+            'TYPE'=>'int(1)',
+            'DEFAULT'=>0,//默认值
+            'COMMENT'=>'软删除0正常1删除',//字段说明
+        ],
         'update_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
             'DEFAULT'=>false,//默认值
