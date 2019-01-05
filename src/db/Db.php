@@ -188,8 +188,8 @@ class Db
         ],
         'del'=>[
             'TYPE'=>'int(1)',
-            'DEFAULT'=>0,//默认值
-            'COMMENT'=>'软删除0正常1删除',//字段说明
+            'DEFAULT'=>1,//默认值
+            'COMMENT'=>'软删除1正常2删除',//字段说明
         ],
         'update_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
