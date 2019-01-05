@@ -148,6 +148,11 @@ class Db
             'DEFAULT'=>0,//默认值
             'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
+        'del'=>[
+            'TYPE'=>'int(1)',
+            'DEFAULT'=>1,//默认值
+            'COMMENT'=>'软删除1正常2删除',//字段说明
+        ],
         'update_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
             'DEFAULT'=>false,//默认值
@@ -371,8 +376,21 @@ class Db
                 }
                 $createTablrSql = rtrim($createTablrSql,','.PHP_EOL);
                 $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
-
+                //TableAlterLog
                 $this->query($createTablrSql); //创建表
+                $TableAlterLog = TableAlterLog::table();
+                $AlterLog = [
+                    'table'=>$this->table,//操作表
+                    'field'=>'',//操作field
+                    'database'=>self::$alterConfig['database'],//数据库
+                    'dsn'=>self::$dsn,//连接
+                    'type'=>'ADD-TABLE',//操作类型
+                    'operator'=>'system',//操作人
+                    'explain'=>'系统自动创建表',//操作说明
+                    'details'=>$this->structure,//操作细节
+                    'sql'=>$createTablrSql,
+                ];
+                $TableAlterLog->insert($AlterLog);
                 /**
                  * 清空缓存完整的表结构并创建新的缓存
                  */
@@ -403,8 +421,8 @@ class Db
                 }
                 $explode = explode('@',$result_table[0]['Create Table']);
                 $this->noe_table_version = (int)end($explode);
+
                 if($this->table_version != $this->noe_table_version){
-                    //echo '版本号不一致';
                     $this->versionUpdate();
                     /**
                      * 清空缓存完整的表结构
@@ -413,7 +431,6 @@ class Db
                 }
                 //echo '版本号一致';
             }
-
         }
 
     }
@@ -455,6 +472,9 @@ class Db
         if($this->noe_table_version>=$this->table_version){
             throw new \Exception("[$this->table] ".'table_version >= noe_table_version');
         }
+
+        $TableAlterLog = TableAlterLog::table();
+
         $i = $this->noe_table_version+1;
         for($i;$i<=$this->table_version;$i++){
 
@@ -480,6 +500,22 @@ class Db
                      * 执行操作
                      */
                     $result = $this->query($noe_sql);
+                    /**
+                     * 写入日志
+                     */
+                    $AlterLog = [
+                        'table'=>$this->table,//操作表
+                        'field'=>$value[0],//操作field
+                        'database'=>self::$alterConfig['database'],//数据库
+                        'dsn'=>self::$dsn,//连接
+                        'type'=>$value[1],//操作类型
+                        'operator'=>$value[4],//操作人
+                        'explain'=>$value[3],//操作说明
+                        'details'=>$value,//操作细节
+                        'sql'=>$noe_sql,
+                        'write_time'=>$value[5]??date('Y-m-d H:i:s')
+                    ];
+                    $TableAlterLog->insert($AlterLog);
                 }
                 /**
                  * 修改版本号
