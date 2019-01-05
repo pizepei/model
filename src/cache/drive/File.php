@@ -68,7 +68,7 @@ class File implements  Cache
      * 缓存类型（比如db类 db类缓存与其他缓存区分 分组和key ）
      * @var string
      */
-    protected static $typeCache = 'sys';
+    public static $typeCache = 'sys';
 
     public function __construct()
     {

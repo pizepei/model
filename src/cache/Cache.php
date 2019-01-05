@@ -82,7 +82,9 @@ class Cache{
          * 判断缓存类型
          *  注意自动加载无法通过use 命名空间加载，只能拼接
          */
-        $class = 'pizepei\model\cache\drive\\'.ucfirst($type).ucfirst(self::$config['driveType']);
+
+        $class = 'pizepei\model\cache\drive\\'.ucfirst(self::$config['driveType']);
+        $class::$typeCache = $type;
         return $class::set(self::$key,self::$data,self::$period,self::$config);
     }
 
@@ -102,7 +104,10 @@ class Cache{
          * 初始化数据
          */
         self::$key = $key;
-        $class = 'pizepei\model\cache\drive\\'.ucfirst($type).ucfirst(self::$config['driveType']);
+
+        $class = 'pizepei\model\cache\drive\\'.ucfirst(self::$config['driveType']);
+        $class::$typeCache = $type;
+
         return $class::get(self::$key,self::$config);
     }
     /**
