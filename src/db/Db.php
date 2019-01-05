@@ -390,7 +390,6 @@ class Db
                  * alter table t_user comment  = '修改后的表注释信息(用户信息表)';
                  */
                 $result_table = $this->query("show create table ".$this->table); //返回一个PDOStatement对象
-                $result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
                 /**
                  * 获取版本号
                  */
@@ -408,7 +407,6 @@ class Db
                     $this->emptyStructureCache(true);
                 }
                 //echo '版本号一致';
-
             }
 
         }
@@ -423,7 +421,15 @@ class Db
         'DROP'=>' DROP COLUMN ',//删除
         'MODIFY'=>' MODIFY ',//修改结构（不修改字段的名称）
         'CHANGE'=>' CHANGE ',//完整的修改字段（包括字段的名称和结构）
-        'ADD-INDEX'=>' ADD ',//增加索引
+        /**
+         * 索引操作
+         * 增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+         */
+        'ADD-INDEX'=>' ADD  INDEX',//
+        'ADD-UNIQUE'=>' ADD UNIQUE INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+        'ADD-FULLTEXT'=>' ADD FULLTEXT INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+        'ADD-SPATIAL'=>' ADD SPATIAL INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+        'DROP-INDEX'=>' DROP INDEX  ',//删除ALTER TABLE table_name  DROP INDEX index_name;  (修改索引 先删除掉原索引，再根据需要创建一个同名的索引)
     ];
     /**
      * 版本更新
@@ -436,6 +442,8 @@ class Db
          * 执行对应版本的修改sql
          *      对应修改表版本号
          * 删除表结构缓存
+         *
+         * ALTER TABLE table_name
          */
         $strSql = 'ALTER TABLE '.$this->table.' ';
         //echo '当前数据库表版本';
@@ -462,7 +470,7 @@ class Db
                      * 拼接sql
                      */
                     $noe_sql = $strSql;
-                    $noe_sql .=self::ALTER_TABLE_STRUCTURE[$value[1]].$value[2].';';
+                    $noe_sql .=self::ALTER_TABLE_STRUCTURE[$value[1]].$value[2];
                     /**
                      * 执行操作
                      */
