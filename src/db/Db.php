@@ -153,15 +153,15 @@ class Db
             'DEFAULT'=>1,//默认值
             'COMMENT'=>'软删除1正常2删除',//字段说明
         ],
-        'update_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
-            'DEFAULT'=>false,//默认值
-            'COMMENT'=>'更新时间',//字段说明
-        ],
         'creation_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
             'DEFAULT'=>false,//默认值
             'COMMENT'=>'创建时间',//字段说明
+        ],
+        'update_time'=>[
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
+            'DEFAULT'=>false,//默认值
+            'COMMENT'=>'更新时间',//字段说明
         ],
         /**
          * UNIQUE 唯一
