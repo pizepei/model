@@ -11,6 +11,10 @@ use pizepei\model\cache\Cache;
 class Db
 {
     /**
+     * uuid 默认值
+     */
+    const UUID_ZERO = '00000000-0000-0000-0000-000000000000';
+    /**
      * 查询表达式
      * @var array
      */
@@ -333,19 +337,25 @@ class Db
                         if($value['AUTO_INCREMENT']){
                             $value['AUTO_INCREMENT'] = 'AUTO_INCREMENT';
                         }
-                        if(!$value['DEFAULT']){
-                            $value['DEFAULT'] = '';
-                        }else{
-                            $value['DEFAULT'] = " DEFAULT '".$value['DEFAULT']."' ";
-                        }
+
                         $value['NULL'] = $value['NULL']??' NOT NULL ';
 
                         if($value['TYPE'] == 'json'){
                             if(self::$alterConfig['versions'] < 5.7){
                                 $value['TYPE'] = 'text';
                             }
+                        }elseif($value['TYPE'] == 'json'){
+                            $value['TYPE'] = 'text';
+                            $value['DEFAULT'] = self::UUID_ZERO;
                         }
-
+                        /**
+                         * 处理默认值
+                         */
+                        if(!$value['DEFAULT']){
+                            $value['DEFAULT'] = '';
+                        }else{
+                            $value['DEFAULT'] = " DEFAULT '".$value['DEFAULT']."' ";
+                        }
 
                         $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
                     }
@@ -554,7 +564,9 @@ class Db
     {
 
         try {
-
+            /**
+             * 建议支持参数绑定
+             */
             $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $sql;//记录sqlLog
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
@@ -698,6 +710,32 @@ class Db
              * 处理表数据
              */
     }
+
+    /**
+     *
+     * @param bool $strtoupper 是否大写
+     * @param int  $separator 分隔符  45 -       0 空字符串
+     * @param bool $parameter true 获取带{ } 的uuid
+     * @return string
+     */
+    public static function getUuid($strtoupper=false,$separator=45,$parameter=false)
+    {
+        $charid = md5((self::$alterConfig['uuid_identifier']??(Dbtabase::DBTABASE['uuid_identifier']??mt_rand(10000,99999))).uniqid(mt_rand(), true));
+        if($strtoupper){$charid = strtoupper($charid);}
+        $hyphen = chr($separator);// "-"
+        $uuid = substr($charid, 0, 8).$hyphen
+            .substr($charid, 8, 4).$hyphen
+            .substr($charid,12, 4).$hyphen
+            .substr($charid,16, 4).$hyphen
+            .substr($charid,20,12);
+
+        if($parameter){$uuid = chr(123).$uuid.chr(123);}
+
+        return $uuid;
+    }
+
+
+
 
     /**
      * 创建返回对象
@@ -1339,7 +1377,6 @@ class Db
              */
             return $this->updateAll($data);
         }else{
-
             /**
              * 插入
              */
@@ -1361,8 +1398,11 @@ class Db
          * 获取field
          *
          * 拼接对应数据
+         *      判断是否有主键uuid
+         *      是否有配套uuid 字段
          */
-        $field = '';
+
+            $field = '';
         foreach ($data[0] as $kk=>$vv){
             $field .= '`'.$kk.'`,';
         }
@@ -1374,6 +1414,17 @@ class Db
         $ii = 1;
         foreach ($data as $k=>$v){
             $VALUES .= '( ';
+            /**
+             * 自动写入uuid
+             */
+            if($this->ClassName !='db'){
+                if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
+                    $k[$this->INDEX_PRI] = self::getUuid();
+                }
+            }
+
+
+
             foreach ($v as $kk=>$vv){
                 /**
                  * 如果是数组 先判断这个字段是否支持json 是就json_encode
@@ -1382,14 +1433,28 @@ class Db
                     /**
                      * 判断是否是db类
                      */
-                    if($this->ClassName =='db'){
-                        if($this->table_describe[$kk]['Type'] == 'json'){
-                            $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
-                        }
-                    }else if($this->structure[$kk]['TYPE'] == 'json') {
+                    if($this->table_describe[$kk]['Type'] == 'json'){
                         $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
                     }
+                    //
+                    //if($this->ClassName =='db'){
+                    //    if($this->table_describe[$kk]['Type'] == 'json'){
+                    //        $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
+                    //    }
+                    //}else  if($this->structure[$kk]['TYPE'] == 'json'){
+                    //    $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
+                    //}
                 }
+
+                if($this->ClassName !='db'){
+                    if($this->INDEX_PRI != $kk && $this->structure[$kk]['TYPE'] =='uuid'){
+                        //检测是否是uuid
+                            if(strlen($vv) != 32){
+
+                            }
+                        }
+                }
+
 
                 if(is_array($vv)){
                     if($this->insertSafety){
