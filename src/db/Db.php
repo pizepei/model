@@ -344,8 +344,8 @@ class Db
                             if(self::$alterConfig['versions'] < 5.7){
                                 $value['TYPE'] = 'text';
                             }
-                        }elseif($value['TYPE'] == 'json'){
-                            $value['TYPE'] = 'text';
+                        }else if($value['TYPE'] == 'uuid'){
+                            $value['TYPE'] = 'char(36)';
                             $value['DEFAULT'] = self::UUID_ZERO;
                         }
                         /**
@@ -1071,10 +1071,9 @@ class Db
                      */
                     return $sql->rowCount();
                 }else{
-
-                    $this->instance->lastInsertId();
+                    //var_dump($sql->fetch());
                     //获取最后一个插入数据的ID值
-                    return $this->instance->lastInsertId();
+                    return $this->instance->lastInsertId($this->INDEX_PRI);
                 }
             }else{
                 throw new \Exception('查询错误sql错误');
@@ -1401,8 +1400,16 @@ class Db
          *      判断是否有主键uuid
          *      是否有配套uuid 字段
          */
+        $field = '';
+        /**
+         * uuid
+         */
+        if($this->ClassName !='db'){
+            if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
+                $field .= '`'.$this->INDEX_PRI.'`,';
+            }
+        }
 
-            $field = '';
         foreach ($data[0] as $kk=>$vv){
             $field .= '`'.$kk.'`,';
         }
@@ -1419,11 +1426,10 @@ class Db
              */
             if($this->ClassName !='db'){
                 if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
-                    $k[$this->INDEX_PRI] = self::getUuid();
+                    $arr = [$this->INDEX_PRI=>self::getUuid()];
+                    $v = $arr+$v;
                 }
             }
-
-
 
             foreach ($v as $kk=>$vv){
                 /**
@@ -1436,25 +1442,21 @@ class Db
                     if($this->table_describe[$kk]['Type'] == 'json'){
                         $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
                     }
-                    //
-                    //if($this->ClassName =='db'){
-                    //    if($this->table_describe[$kk]['Type'] == 'json'){
-                    //        $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
-                    //    }
-                    //}else  if($this->structure[$kk]['TYPE'] == 'json'){
-                    //    $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
-                    //}
                 }
 
                 if($this->ClassName !='db'){
                     if($this->INDEX_PRI != $kk && $this->structure[$kk]['TYPE'] =='uuid'){
                         //检测是否是uuid
-                            if(strlen($vv) != 32){
-
+                            if(strlen($vv) == 36){
+                                preg_match('/[A-Za-z0-9]{8}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{12}/',$vv,$preg_match);
+                                if($preg_match[0] != $vv){
+                                    throw new \Exception('不规范的UUID');
+                                }
+                            }else{
+                                throw new \Exception('不规范的UUID:uuid必须是36位');
                             }
                         }
                 }
-
 
                 if(is_array($vv)){
                     if($this->insertSafety){
@@ -1479,7 +1481,6 @@ class Db
         $VALUES = rtrim($VALUES,',');
 
         $this->sql = 'INSERT '.$this->table.' ('.$field.') VALUES '.$VALUES;
-
         return $this->constructorSendUpdate(false);
 
     }
