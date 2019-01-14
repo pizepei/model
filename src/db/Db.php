@@ -311,22 +311,22 @@ class Db
          * 判断是否是db类
          */
         if($this->ClassName != 'db'){
+            /**
+             * 合并表结构
+             * $structureInit
+             */
+            if(isset($this->structure['INDEX'][0]['TYPE'])){
+                foreach($this->structure['INDEX'] as $index){
+                    array_unshift($this->structureInit['INDEX'],$index);
+                }
+            }
+            $this->structure  = array_merge($this->structure,$this->structureInit);
+
             if(empty($result_table)){
                 /**
                  * 表不存在
                  * 拼接创建sql
                  */
-                /**
-                 * 合并表结构
-                 * $structureInit
-                 */
-                if(isset($this->structure['INDEX'][0]['TYPE'])){
-                    foreach($this->structure['INDEX'] as $index){
-                        array_unshift($this->structureInit['INDEX'],$index);
-                    }
-                }
-                $this->structure  = array_merge($this->structure,$this->structureInit);
-
                 /**
                  * 创建表
                  */
@@ -969,6 +969,8 @@ class Db
     }
     /**
      *查询构造器
+     *查询构造器
+     *查询构造器
      */
     public function constructorSend($all = true)
     {
@@ -1035,7 +1037,7 @@ class Db
             die ("Error!: " . $e->getMessage() . "<br/>");
         }
     }
-
+    protected $lastInsertId = [];
     /**
      *删除、更新插入 构造器
      */
@@ -1059,6 +1061,7 @@ class Db
              */
             $this->variableLog[] = $this->execute_bindValue;
 
+            $lastInsertId = $this->lastInsertId;
             //清除sql影响
             $this->eliminateSql();
             if($create){
@@ -1071,6 +1074,27 @@ class Db
                      */
                     return $sql->rowCount();
                 }else{
+
+
+                    if($this->ClassName !='db'){
+                        if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
+                            /**
+                             * 执行获取uuid
+                             */
+                            $lastInsertId = "'".implode("','",$lastInsertId)."'";
+                            /**
+                             *获取已经插入的 InsertId
+                             */
+                            if(isset($this->structure['update_time'])){
+                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}`,`update_time` FROM `oauth_module`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
+                            }else{
+                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}` FROM `oauth_module`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
+                            }
+
+                            return $this->inversion($this->INDEX_PRI,$this->query($lastInsertIdSql),true);
+                        }
+                    }
+
                     //var_dump($sql->fetch());
                     //获取最后一个插入数据的ID值
                     return $this->instance->lastInsertId($this->INDEX_PRI);
@@ -1103,7 +1127,10 @@ class Db
          */
         $this->insertSafety = true;
         $this->whereSafety = true;
-
+        /**
+         * 插入主键
+         */
+        $this->lastInsertId = [];
     }
 
     /**
@@ -1426,7 +1453,9 @@ class Db
              */
             if($this->ClassName !='db'){
                 if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
-                    $arr = [$this->INDEX_PRI=>self::getUuid()];
+                    $uuid = self::getUuid();
+                    $this->lastInsertId[] = $uuid;
+                    $arr = [$this->INDEX_PRI=>$uuid];
                     $v = $arr+$v;
                 }
             }
@@ -1791,6 +1820,28 @@ class Db
     {
         return $this->instance->rollBack();
     }
+
+    /**
+     * 反转数据
+     * @param      $field
+     * @param      $data
+     * @param bool $type
+     * @return array
+     */
+    public function inversion($field,$data,$type=false)
+    {
+        $result =[];
+        foreach($data as $key=>$value){
+            if($type){
+                $result[$value[$field]] = $value;
+            }else{
+                $result[] = $value[$field];
+            }
+        }
+        return $result;
+    }
+
+
     /**
      * 思考
      *
