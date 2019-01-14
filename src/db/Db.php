@@ -274,11 +274,12 @@ class Db
     {
         $this->table = $table;
         $this->instance = $instance;
-
+        //$GLOBALS['DBTABASE']['sqlLog'][$this->table]['query'] = [];
         /**
          * 判断表是否存在
          */
         $this->setStructure();
+
         /**
          * 初始化表数据（缓存）
          */
@@ -346,7 +347,7 @@ class Db
                             }
                         }else if($value['TYPE'] == 'uuid'){
                             $value['TYPE'] = 'char(36)';
-                            $value['DEFAULT'] = self::UUID_ZERO;
+                            //$value['DEFAULT'] = self::UUID_ZERO;
                         }
                         /**
                          * 处理默认值
@@ -562,12 +563,13 @@ class Db
      */
     public function query($sql)
     {
-
         try {
             /**
              * 建议支持参数绑定
              */
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $sql;//记录sqlLog
+            //$GLOBALS['DBTABASE']['sqlLog'][$this->table]['query'] = $GLOBALS['DBTABASE']['sqlLog'][$this->table]['query']+[$sql];
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table]['query'][] = [$sql];//记录sqlLog
+
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
@@ -1453,7 +1455,7 @@ class Db
              */
             if($this->ClassName !='db'){
                 if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
-                    $uuid = self::getUuid();
+                    $uuid = self::getUuid(true);
                     $this->lastInsertId[] = $uuid;
                     $arr = [$this->INDEX_PRI=>$uuid];
                     $v = $arr+$v;
@@ -1552,13 +1554,32 @@ class Db
                  * 进行拼接
                  */
                 if($kk != $this->INDEX_PRI){
+
+                    /**
+                     * 判断uuid格式
+                     */
+                    if($this->ClassName !='db'){
+                        if($this->INDEX_PRI != $kk && $this->structure[$kk]['TYPE'] =='uuid'){
+                            //检测是否是uuid
+                            if(strlen($vv) == 36){
+                                preg_match('/[A-Za-z0-9]{8}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{12}/',$vv,$preg_match);
+                                if($preg_match[0] != $vv){
+                                    throw new \Exception('不规范的UUID');
+                                }
+                            }else{
+                                throw new \Exception('不规范的UUID:uuid必须是36位');
+                            }
+                        }
+                    }
                     /**
                      * 获取全部Field
                      */
+
                     /**
                      * 获取对应id 的对应Field 需要修改成的什么
                      * id=>value
                      */
+
                     $Field[$kk][$v[$this->INDEX_PRI]] = $vv;
                 }else{
                     /**
