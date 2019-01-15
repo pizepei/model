@@ -347,7 +347,9 @@ class Db
                             }
                         }else if($value['TYPE'] == 'uuid'){
                             $value['TYPE'] = 'char(36)';
-                            //$value['DEFAULT'] = self::UUID_ZERO;
+                            if($key != $this->structure['PRIMARY']){
+                                $value['DEFAULT'] = self::UUID_ZERO;
+                            }
                         }
                         /**
                          * 处理默认值
@@ -567,8 +569,7 @@ class Db
             /**
              * 建议支持参数绑定
              */
-            //$GLOBALS['DBTABASE']['sqlLog'][$this->table]['query'] = $GLOBALS['DBTABASE']['sqlLog'][$this->table]['query']+[$sql];
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table]['query'][] = [$sql];//记录sqlLog
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
 
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
@@ -679,8 +680,8 @@ class Db
              */
             $ClassName =explode('\\', get_called_class() );
             $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
+            $ClassName = rtrim($ClassName,'Model');
             $strlen = strlen($ClassName);
-
             $tablestr = '';
             /**
              * 处理大小写和下划线
@@ -694,7 +695,8 @@ class Db
                     $tablestr .=$ClassName{$x};
                 }
             }
-            /**
+
+        /**
              * 拼接
              */
             if($ClassName =='db'){
@@ -708,7 +710,9 @@ class Db
             }else{
                 self::$altertabl = self::$alterConfig['prefix'].$tablestr;
             }
-            /**
+        //var_dump($tablestr);
+
+        /**
              * 处理表数据
              */
     }
@@ -1000,7 +1004,7 @@ class Db
             /**
              * 历史sql
              */
-            $this->sqlLog[] = $this->sql;
+            //$this->sqlLog[] = $this->sql;
             /**
              * 绑定变量
              */
@@ -1036,6 +1040,7 @@ class Db
              */
             return $data;
         } catch (\PDOException $e) {
+            $this->eliminateSql();
             die ("Error!: " . $e->getMessage() . "<br/>");
         }
     }
@@ -1800,6 +1805,7 @@ class Db
             $sql = str_replace($k,'`'.$v.'`',$sql);
         }
         $this->sqlLog[] = ['Sql'=>$sql,'Cache'=>$this->cacheStatus];
+        //var_dump($this->sqlLog);
         return $this->sqlLog;
     }
 
