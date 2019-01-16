@@ -278,7 +278,9 @@ class Db
         /**
          * 判断表是否存在
          */
-        $this->setStructure();
+        if(self::$alterConfig['initTablePattern']){
+            $this->setStructure();
+        }
 
         /**
          * 初始化表数据（缓存）
@@ -287,6 +289,40 @@ class Db
 
     }
 
+    /**
+     * 错误处理
+     * @param $e
+     */
+    protected function Exception($e,$type=false)
+    {
+        //var_dump($e->getCode());
+        /**
+         * 判断是否存在事务
+         */
+        if($this->inTransaction()){
+            $this->rollBack();
+        }
+        /**
+         * 表不存在
+         */
+        if($e->getCode() == '42S02'){
+            $this->CreateATableThatDoesNotExist();
+        }
+        /**
+         * 清除sql
+         */
+        $this->eliminateSql();
+        die ("Error!: " . $e->getMessage() . "query<br/>");
+    }
+    /**
+     * 如果表不存在
+     *      进行的操作
+     */
+    protected function CreateATableThatDoesNotExist()
+    {
+        $this->setStructure();
+        $this->showCreateTableCache();
+    }
     /**
      * @Author: pizepei
      * @Created: 2018/12/31 22:55
@@ -301,8 +337,10 @@ class Db
          * show databases like 'db_name';表
          * show tables like 'table_name';数据库
          */
-        $result_table = $this->instance->query("show tables like '".$this->table."'"); //返回一个PDOStatement对象
-        $result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+
+        $result_table = $this->query("SELECT table_name FROM information_schema.TABLES WHERE table_name ='{$this->table}'"); //返回一个PDOStatement对象
+        //$result_table = $this->instance->query("show tables like '".$this->table."'"); //返回一个PDOStatement对象
+        //$result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         /**
          * 获取实例化后的类名称
          */
@@ -574,13 +612,7 @@ class Db
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
-            /**
-             * 判断是否存在事务
-             */
-            if($this->inTransaction()){
-                $this->rollBack();
-            }
-            die ("Error!: " . $e->getMessage() . "query<br/>");
+            $this->Exception($e);
         }
     }
 
@@ -778,8 +810,10 @@ class Db
             /**
              * 获取完整的表结构
              */
-            $create = $this->instance->query('show create table '.$this->table); //返回一个PDOStatement对象
-            $this->table_create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+            //$create = $this->instance->query('show create table '.$this->table); //返回一个PDOStatement对象
+            //$this->table_create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+
+            $this->table_create = $this->query('show create table '.$this->table); //返回一个PDOStatement对象
             /**
              * 缓存
              */
@@ -833,8 +867,9 @@ class Db
             /**
              * 获取完整的表索引
              */
-            $create = $this->instance->query('show index from '.$this->table); //返回一个PDOStatement对象
-            $create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+            $create = $this->query('show index from '.$this->table); //返回一个PDOStatement对象
+            //$create = $this->instance->query('show index from '.$this->table); //返回一个PDOStatement对象
+            //$create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
 
             $this->table_index = $create;
             /**
@@ -852,8 +887,10 @@ class Db
             /**
              * 获取完整的表结构
              */
-            $create = $this->instance->query('describe '.$this->table); //返回一个PDOStatement对象
-            $create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
+            $create = $this->query('describe '.$this->table); //返回一个PDOStatement对象
+            
+            //$create = $this->instance->query('describe '.$this->table); //返回一个PDOStatement对象
+            //$create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
 
             $describeArrar = [];
             $indexArrar = [];
@@ -1040,8 +1077,7 @@ class Db
              */
             return $data;
         } catch (\PDOException $e) {
-            $this->eliminateSql();
-            die ("Error!: " . $e->getMessage() . "<br/>");
+            $this->Exception($e);
         }
     }
     protected $lastInsertId = [];
@@ -1111,10 +1147,8 @@ class Db
             }
 
         } catch (\PDOException $e) {
-            if($this->inTransaction()){
-                $this->rollBack();
-            }
-            die ("Error!: " . $e->getMessage() . "<br/>");
+            $this->Exception($e,true);
+
         }
     }
 
