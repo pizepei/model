@@ -396,14 +396,24 @@ class Db
                                 $value['DEFAULT'] = self::UUID_ZERO;
                             }
                         }
+
                         /**
                          * 处理默认值
                          */
-                        if(!$value['DEFAULT']){
+                        $value['DEFAULT'] = isset($value['DEFAULT'])?$value['DEFAULT']:false;
+
+
+                        if(!isset($value['DEFAULT']) || $value['DEFAULT'] ==false){
+                            var_dump($value['DEFAULT']);
+                            var_dump(isset($value['DEFAULT']));
+
                             $value['DEFAULT'] = '';
-                        }else{
+                        }else if($value['DEFAULT'] == '' || !empty($value['DEFAULT']) || $value['DEFAULT'] == 0){
+
+
                             $value['DEFAULT'] = " DEFAULT '".$value['DEFAULT']."' ";
                         }
+                        var_dump($value['DEFAULT']);
 
                         $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
                     }
