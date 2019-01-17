@@ -274,7 +274,7 @@ class Db
     {
         $this->table = $table;
         $this->instance = $instance;
-        //$GLOBALS['DBTABASE']['sqlLog'][$this->table]['query'] = [];
+
         /**
          * 判断表是否存在
          */
@@ -303,11 +303,18 @@ class Db
             $this->rollBack();
         }
         /**
-         * 表不存在
+         * 表不存在42S02   1051 数据表不存在   1146 数据表不存在
+         *字段不存在  1054
+         * 1062：字段值重复，入库失败  1169：字段值重复，更新记录失败
          */
         if($e->getCode() == '42S02'){
             $this->CreateATableThatDoesNotExist();
         }
+
+        /**
+         * 字段不对
+         */
+
         /**
          * 清除sql
          */
