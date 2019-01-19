@@ -12,6 +12,16 @@ use pizepei\model\db\Db;
 class Model extends Db
 {
     /**
+     * uuid 默认值
+     */
+    const UUID_ZERO = '00000000-0000-0000-0000-000000000000';
+
+    const DEFAULT =[
+        'uuid'=>'00000000-0000-0000-0000-000000000000',//uuid
+        'json'=>'[]',//json
+        'geometry'=>"POINT('0 0')",//空间
+    ];
+    /**
      * 可操作的字段操作
      */
     const ALTER_TABLE_STRUCTURE = [
@@ -19,24 +29,45 @@ class Model extends Db
         'DROP'=>' DROP COLUMN ',//删除
         'MODIFY'=>' MODIFY ',//修改结构（不修改字段的名称）
         'CHANGE'=>' CHANGE ',//完整的修改字段（包括字段的名称和结构）
-        'ADD-INDEX'=>' ADD ',//增加索引
+        /**
+         * 索引操作
+         * 增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+         */
+        'ADD-INDEX'=>' ADD  INDEX',//
+        'ADD-UNIQUE'=>' ADD UNIQUE INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+        'ADD-FULLTEXT'=>' ADD FULLTEXT INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+        'ADD-SPATIAL'=>' ADD SPATIAL INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
+        'DROP-INDEX'=>' DROP INDEX  ',//删除ALTER TABLE table_name  DROP INDEX index_name;  (修改索引 先删除掉原索引，再根据需要创建一个同名的索引)
     ];
 
+    /**
+     * 表结构(初始化)
+     * 默认
+     *      version（列数据版本号从0开始）
+     *      update_time （更新时间）
+     *      creation_time （创建时间 默认NORMAL普通索引）
+     * @var array
+     */
     protected $structureInit = [
         'version'=>[
             'TYPE'=>'int',
-            'DEFAULT'=>0,//默认值
+            'DEFAULT'=>1,//默认值
             'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
-        'update_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
-            'DEFAULT'=>false,//默认值
-            'COMMENT'=>'更新时间',//字段说明
+        'del'=>[
+            'TYPE'=>'int(1)',
+            'DEFAULT'=>1,//默认值
+            'COMMENT'=>'软删除1正常2删除',//字段说明
         ],
         'creation_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
             'DEFAULT'=>false,//默认值
             'COMMENT'=>'创建时间',//字段说明
+        ],
+        'update_time'=>[
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
+            'DEFAULT'=>false,//默认值
+            'COMMENT'=>'更新时间',//字段说明
         ],
         /**
          * UNIQUE 唯一
@@ -51,10 +82,19 @@ class Model extends Db
     ];
 
     /**
+     * @var string 表备注（不可包含@版本号关键字）
+     */
+    protected $table_comment = '模拟表';
+    /**
+     * @var int 模型定义的 表版本（用来记录表结构版本）在表备注后面@$table_version
+     */
+    protected $table_version = 0;
+    /**
      * 初始化数据：表不存在时自动创建表然后自动插入$initData数据
      *      支持多条
      * @var array
      */
+
     protected $initData = [
 
     ];

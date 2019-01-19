@@ -10,7 +10,7 @@
 namespace pizepei\model\db;
 
 
-class TableAlterLog extends Db
+class TableAlterLogModel extends Model
 {
     /**
      * 表结构
@@ -36,19 +36,19 @@ class TableAlterLog extends Db
             'TYPE'=>'varchar(255)', 'DEFAULT'=>'','COMMENT'=>'操作人',
         ],
         'explain'=>[
-            'TYPE'=>'text', 'DEFAULT'=>'','COMMENT'=>'操作说明',
+            'TYPE'=>'text', 'DEFAULT'=>false,'COMMENT'=>'操作说明','NULL'=>'',
         ],
         'details'=>[
-            'TYPE'=>'json', 'DEFAULT'=>'','COMMENT'=>'操作细节json',
+            'TYPE'=>'json', 'DEFAULT'=>false,'COMMENT'=>'操作细节json','NULL'=>'',
         ],
         'details'=>[
-            'TYPE'=>'json', 'DEFAULT'=>'','COMMENT'=>'操作细节json',
+            'TYPE'=>'json', 'DEFAULT'=>false,'COMMENT'=>'操作细节json','NULL'=>'',
         ],
         'sql'=>[
-            'TYPE'=>'text', 'DEFAULT'=>'','COMMENT'=>'操作sql',
+            'TYPE'=>'text', 'DEFAULT'=>false,'COMMENT'=>'操作sql','NULL'=>'',
         ],
         'write_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP', 'DEFAULT'=>'','COMMENT'=>'操作编写时间',
+            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP','COMMENT'=>'操作编写时间',
         ],
         'dsn'=>[
             'TYPE'=>'varchar(255)', 'DEFAULT'=>'','COMMENT'=>'数据库连接dsn',
