@@ -8,12 +8,19 @@ namespace pizepei\model\db;
 use pizepei\config\Dbtabase;
 use pizepei\func\Func;
 use pizepei\model\cache\Cache;
+
 class Db
 {
     /**
      * uuid 默认值
      */
     const UUID_ZERO = '00000000-0000-0000-0000-000000000000';
+
+    const DEFAULT =[
+        'uuid'=>'00000000-0000-0000-0000-000000000000',//uuid
+        'json'=>'[]',//json
+        'geometry'=>"POINT('0 0')",//空间
+    ];
     /**
      * 查询表达式
      * @var array
@@ -149,7 +156,7 @@ class Db
     protected $structureInit = [
         'version'=>[
             'TYPE'=>'int',
-            'DEFAULT'=>0,//默认值
+            'DEFAULT'=>1,//默认值
             'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
         'del'=>[
@@ -278,7 +285,7 @@ class Db
         /**
          * 判断表是否存在
          */
-        if(self::$alterConfig['initTablePattern']){
+        if(static::$alterConfig['initTablePattern']){
             $this->setStructure();
         }
 
@@ -387,7 +394,7 @@ class Db
                         $value['NULL'] = $value['NULL']??' NOT NULL ';
 
                         if($value['TYPE'] == 'json'){
-                            if(self::$alterConfig['versions'] < 5.7){
+                            if(static::$alterConfig['versions'] < 5.7){
                                 $value['TYPE'] = 'text';
                             }
                         }else if($value['TYPE'] == 'uuid'){
@@ -396,24 +403,19 @@ class Db
                                 $value['DEFAULT'] = self::UUID_ZERO;
                             }
                         }
-
                         /**
                          * 处理默认值
                          */
                         $value['DEFAULT'] = isset($value['DEFAULT'])?$value['DEFAULT']:false;
 
-
-                        if(!isset($value['DEFAULT']) || $value['DEFAULT'] ==false){
-                            var_dump($value['DEFAULT']);
-                            var_dump(isset($value['DEFAULT']));
+                        if(!isset($value['DEFAULT']) || $value['DEFAULT'] === false){
 
                             $value['DEFAULT'] = '';
-                        }else if($value['DEFAULT'] == '' || !empty($value['DEFAULT']) || $value['DEFAULT'] == 0){
+                        }else if($value['DEFAULT'] == '' || !empty($value['DEFAULT']) || $value['DEFAULT'] === 0){
 
 
                             $value['DEFAULT'] = " DEFAULT '".$value['DEFAULT']."' ";
                         }
-                        var_dump($value['DEFAULT']);
 
                         $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
                     }
@@ -446,11 +448,11 @@ class Db
                 $createTablrSql .=')'.PHP_EOL."ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='".$this->table_comment.'@'.$this->table_version."'";
                 //TableAlterLog
                 $this->query($createTablrSql); //创建表
-                $TableAlterLog = TableAlterLog::table();
+                $TableAlterLog = TableAlterLogModel::table();
                 $AlterLog = [
                     'table'=>$this->table,//操作表
                     'field'=>'',//操作field
-                    'database'=>self::$alterConfig['database'],//数据库
+                    'database'=>static::$alterConfig['database'],//数据库
                     'dsn'=>self::$dsn,//连接
                     'type'=>'ADD-TABLE',//操作类型
                     'operator'=>'system',//操作人
@@ -541,7 +543,7 @@ class Db
             throw new \Exception("[$this->table] ".'table_version >= noe_table_version');
         }
 
-        $TableAlterLog = TableAlterLog::table();
+        $TableAlterLog = TableAlterLogModel::table();
 
         $i = $this->noe_table_version+1;
         for($i;$i<=$this->table_version;$i++){
@@ -574,7 +576,7 @@ class Db
                     $AlterLog = [
                         'table'=>$this->table,//操作表
                         'field'=>$value[0],//操作field
-                        'database'=>self::$alterConfig['database'],//数据库
+                        'database'=>static::$alterConfig['database'],//数据库
                         'dsn'=>self::$dsn,//连接
                         'type'=>$value[1],//操作类型
                         'operator'=>$value[4],//操作人
@@ -649,7 +651,7 @@ class Db
          * 合并配置
          * 连接数据库
          */
-        self::$alterConfig = array_merge( Dbtabase::DBTABASE,self::$alterConfig);
+        static::$alterConfig = array_merge( Dbtabase::DBTABASE,static::$alterConfig);
         /**
          * 获取表名称
          */
@@ -663,12 +665,12 @@ class Db
          *
          * 注意   ：  host前面是 : [冒号] 其他参数前面是 ; [分号]  所以参数之间 = 之间不能有空格
          */
-        self::$dsn = self::$alterConfig['type'].':host='.self::$alterConfig['hostname'].';port='.self::$alterConfig['hostport'].';dbname='.self::$alterConfig['database'].';charset='.self::$alterConfig['charset'];
+        self::$dsn = static::$alterConfig['type'].':host='.static::$alterConfig['hostname'].';port='.static::$alterConfig['hostport'].';dbname='.static::$alterConfig['database'].';charset='.static::$alterConfig['charset'];
         /************************资源重复利用*******************************************/
         /**
          * 判断是否重复使用对象
          */
-        if(self::$alterConfig['setObjectPattern']){
+        if(static::$alterConfig['setObjectPattern']){
             /**
              * 重复使用
              *      判断对象是否存在 存在返回
@@ -699,7 +701,7 @@ class Db
              * password  对应的密码
              * self::$alterParams 连接参数
              **/
-            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, self::$alterConfig['username'], self::$alterConfig['password'],self::$alterConfig['params']); //初始化一个PDO对象
+            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, static::$alterConfig['username'], static::$alterConfig['password'],static::$alterConfig['params']); //初始化一个PDO对象
             /**
              * 实例化模型类
              *      传如连接标识
@@ -729,7 +731,8 @@ class Db
              */
             $ClassName =explode('\\', get_called_class() );
             $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
-            $ClassName = rtrim($ClassName,'Model');
+            $ClassName = str_replace("Model","",$ClassName);
+
             $strlen = strlen($ClassName);
             $tablestr = '';
             /**
@@ -744,8 +747,7 @@ class Db
                     $tablestr .=$ClassName{$x};
                 }
             }
-
-        /**
+            /**
              * 拼接
              */
             if($ClassName =='db'){
@@ -754,16 +756,12 @@ class Db
                  */
                 self::$altertabl = $table;
                 if($prefix){
-                    self::$altertabl = self::$alterConfig['prefix'].$table;
+                    self::$altertabl = static::$alterConfig['prefix'].$table;
                 }
             }else{
-                self::$altertabl = self::$alterConfig['prefix'].$tablestr;
+                self::$altertabl = static::$alterConfig['prefix'].$tablestr;
             }
-        //var_dump($tablestr);
 
-        /**
-             * 处理表数据
-             */
     }
 
     /**
@@ -775,7 +773,7 @@ class Db
      */
     public static function getUuid($strtoupper=false,$separator=45,$parameter=false)
     {
-        $charid = md5((self::$alterConfig['uuid_identifier']??(Dbtabase::DBTABASE['uuid_identifier']??mt_rand(10000,99999))).uniqid(mt_rand(), true));
+        $charid = md5((static::$alterConfig['uuid_identifier']??(Dbtabase::DBTABASE['uuid_identifier']??mt_rand(10000,99999))).uniqid(mt_rand(), true));
         if($strtoupper){$charid = strtoupper($charid);}
         $hyphen = chr($separator);// "-"
         $uuid = substr($charid, 0, 8).$hyphen
@@ -801,7 +799,7 @@ class Db
         /**
          * 判断返回类型
          */
-        if(self::$alterConfig['setObjectPattern']){
+        if(static::$alterConfig['setObjectPattern']){
             /**
              * 创建保存对象
              */
@@ -832,9 +830,9 @@ class Db
 
             $this->table_create = $this->query('show create table '.$this->table); //返回一个PDOStatement对象
             /**
-             * 缓存
+             * 缓存cachePeriod
              */
-            Cache::set(['table_create',$this->table],$this->table_create,0,'db');
+            Cache::set(['table_create',$this->table],$this->table_create,static::$alterConfig['cachePeriod']??0,'db');
         }
         /**
          * 查看索引         show index from table_name
@@ -1493,6 +1491,7 @@ class Db
             if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
                 $field .= '`'.$this->INDEX_PRI.'`,';
             }
+        //DEFAULT
         }
 
         foreach ($data[0] as $kk=>$vv){
