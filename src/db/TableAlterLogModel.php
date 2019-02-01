@@ -18,7 +18,7 @@ class TableAlterLogModel extends Model
      */
     protected $structure = [
         'id'=>[
-            'TYPE'=>'int','DEFAULT'=>false,'COMMENT'=>'主键id','AUTO_INCREMENT'=>true,
+            'TYPE'=>'uuid','COMMENT'=>'主键uuid','DEFAULT'=>false,
         ],
         'database'=>[
             'TYPE'=>'varchar(150)', 'DEFAULT'=>'','COMMENT'=>'数据库名称',
