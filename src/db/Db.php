@@ -626,7 +626,13 @@ class Db
             /**
              * 建议支持参数绑定
              */
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+            if(__PATTERN__ == 'CLI'){
+                if(__CLI__SQL_LOG__ == 'true' ){
+                    $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+                }
+            }else{
+                $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+            }
 
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
