@@ -47,7 +47,7 @@ class Cache{
         /**
          * 获取缓存配置
          */
-        self::$config = Config::UNIVERSAL['cache'];
+        self::$config = \Config::UNIVERSAL['cache'];
         /**
          * 初始化数据
          */

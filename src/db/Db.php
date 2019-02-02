@@ -5,7 +5,6 @@
  * Model::table()->spliceWhere();
  */
 namespace pizepei\model\db;
-use pizepei\config\Dbtabase;
 use pizepei\func\Func;
 use pizepei\model\cache\Cache;
 
@@ -657,7 +656,7 @@ class Db
          * 合并配置
          * 连接数据库
          */
-        static::$alterConfig = array_merge( Dbtabase::DBTABASE,static::$alterConfig);
+        static::$alterConfig = array_merge( \Dbtabase::DBTABASE,static::$alterConfig);
         /**
          * 获取表名称
          */
