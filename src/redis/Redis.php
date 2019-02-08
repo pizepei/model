@@ -5,17 +5,17 @@
  * @Last Modified by:   pizepei
  * @Last Modified time: 2018-04-21 23:38:33
  */
-namespace common\redis;
+namespace pizepei\model\redis;
 
-class RedisModel 
+class Redis
 {
     /** @var \Redis */
     protected $redis = null;
 
     protected $config  = [
-        'host'         => '127.0.0.1', // redis主机
+        'host'         => 'r-wz97a095ae6da774.redis.rds.aliyuncs.com', // redis主机
         'port'         => 6379, // redis端口
-        'password'     => '', // 密码
+        'password'     => 'PzP614323079', // 密码
         'select'       => 0, // 操作库
         'expire'       => 3600, // 有效期(秒)
         'timeout'      => 0, // 超时时间(秒)
@@ -41,9 +41,9 @@ class RedisModel
             $redis->select($this->config['select']);
             $this->redis = $redis;
             $this->type = $redis;
-            
 
         }catch(\Exception $e){
+            var_dump($e->getMessage());
             echo json_encode(['code'=>1001]);
             exit;
         }
