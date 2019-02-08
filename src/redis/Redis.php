@@ -15,7 +15,7 @@ class Redis
     protected $config  = [
         'host'         => 'r-wz97a095ae6da774.redis.rds.aliyuncs.com', // redis主机
         'port'         => 6379, // redis端口
-        'password'     => 'PzP614323079', // 密码
+        'password'     => '123456789', // 密码
         'select'       => 0, // 操作库
         'expire'       => 3600, // 有效期(秒)
         'timeout'      => 0, // 超时时间(秒)
@@ -33,6 +33,7 @@ class Redis
 
         try{
             $this->config = array_merge($this->config, $config);
+            var_dump($this->config);
             $redis = new \Redis();
             $redis->connect($this->config['host'], $this->config['port'],1);
             if(!empty($this->config['password'])){
