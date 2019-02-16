@@ -1737,7 +1737,12 @@ class Db
      */
     public function add($data)
     {
-
+        /**
+         * 判断数组类型
+         */
+        if(!isset($data[0])){
+            $data = [$data];
+        }
         /**
          * 过滤字段
          */
