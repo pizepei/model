@@ -633,6 +633,8 @@ class Db
                 $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
             }
 
+            $this->safetySql($sql);
+
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
@@ -640,6 +642,29 @@ class Db
         }
     }
 
+    /**
+     * @Author pizepei
+     * @Created 2019/2/17 16:54
+     *
+     * @param $dql
+     *
+     * @title  方法标题（一般是方法的简称）
+     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
+     *
+     */
+    protected function safetySql($dql)
+    {
+
+        foreach(static::$alterConfig['safety']['del'] as $key=>$value)
+        {
+            preg_match($value[0],$dql,$result);
+            if(!empty($result)){
+                throw new \Exception($value[1]);
+            }
+        }
+
+
+    }
     /**
      * @Author: pizepei
      * @Created: 2019/1/1 12:07
