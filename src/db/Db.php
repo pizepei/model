@@ -407,8 +407,7 @@ class Db
                          */
                         $value['DEFAULT'] = isset($value['DEFAULT'])?$value['DEFAULT']:false;
 
-                        if(!isset($value['DEFAULT']) || $value['DEFAULT'] === false){
-
+                        if($value['DEFAULT'] === false){
                             $value['DEFAULT'] = '';
                         }else if($value['DEFAULT'] == '' || !empty($value['DEFAULT']) || $value['DEFAULT'] === 0){
 

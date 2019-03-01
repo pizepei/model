@@ -40,12 +40,16 @@ class Redis
             }
             $redis->select($this->config['select']);
             $this->redis = $redis;
-            $this->type = $redis;
+            return $this->redis;
 
         }catch(\Exception $e){
             exit(json_encode(['code'=>1001,'Message'=>$e->getMessage()]));
         }
-
+    }
+    public function __get($name)
+    {
+        return $this->$name;
+        // TODO: Implement __get() method.
     }
 
 }
