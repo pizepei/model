@@ -567,6 +567,7 @@ class Db
                     /**
                      * 执行操作
                      */
+                    //var_dump($noe_sql);
                     $result = $this->query($noe_sql);
                     /**
                      * 写入日志
