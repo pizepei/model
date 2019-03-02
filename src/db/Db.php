@@ -159,9 +159,9 @@ class Db
             'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
         'del'=>[
-            'TYPE'=>'int(1)',
-            'DEFAULT'=>1,//默认值
-            'COMMENT'=>'软删除1正常2删除',//字段说明
+            'TYPE'=>"ENUM('1','2','3')",
+            'DEFAULT'=>1,//默认值 1正常 2 删除 3 异次元
+            'COMMENT'=>'软删除默认值1， 1正常 2 删除 3 异次元',//字段说明
         ],
         'creation_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
@@ -567,7 +567,6 @@ class Db
                     /**
                      * 执行操作
                      */
-                    //var_dump($noe_sql);
                     $result = $this->query($noe_sql);
                     /**
                      * 写入日志
@@ -1147,6 +1146,7 @@ class Db
              * 历史变量
              * @var array
              */
+            //var_dump($this->execute_bindValue);
             $this->variableLog[] = $this->execute_bindValue;
 
             $lastInsertId = $this->lastInsertId;
@@ -1431,6 +1431,7 @@ class Db
              */
             $data = [$data];
         }
+        //var_dump($data);
         /**
          * 过滤字段
          */
@@ -1644,6 +1645,7 @@ class Db
                      * 判断uuid格式
                      */
                     if($this->ClassName !='db'){
+
                         if($this->INDEX_PRI != $kk && $this->structure[$kk]['TYPE'] =='uuid'){
                             //检测是否是uuid
                             if(strlen($vv) == 36){
@@ -1653,6 +1655,10 @@ class Db
                                 }
                             }else{
                                 throw new \Exception('不规范的UUID:uuid必须是36位');
+                            }
+                        }else if($this->INDEX_PRI != $kk && $this->structure[$kk]['TYPE'] =='json'){
+                            if(is_array($vv)){
+                                $vv = json_encode($vv,JSON_UNESCAPED_UNICODE);
                             }
                         }
                     }
@@ -1680,7 +1686,7 @@ class Db
          * 拼接where
          * WHERE id IN (3357,3358,3359)
          */
-        $indexsql = ' WHERE '.$this->INDEX_PRI.' IN  ( '.rtrim($index,',').' )';
+        $indexsql = ' WHERE '.$this->INDEX_PRI.' IN  ( '."'".rtrim($index,',')."'".' )';
         /**
          * 拼接主体
          *
@@ -1724,9 +1730,9 @@ class Db
                 $ii++;
 
                 if(is_array($vv)){
-
                     if($this->insertSafety){
                         throw new \Exception('非法的数据参数'.$vv[0]);
+                        //$vv = json_encode($vv);
                     }
                     /**
                      * 使用函数
@@ -1752,6 +1758,7 @@ class Db
          * 拼接sql
          */
         $this->sql = $sql.rtrim($Fieldsql,', ').$indexsql;
+
         return $this->constructorSendUpdate();
 
     }
@@ -1890,7 +1897,6 @@ class Db
             $sql = str_replace($k,'`'.$v.'`',$sql);
         }
         $this->sqlLog[] = ['Sql'=>$sql,'Cache'=>$this->cacheStatus];
-        //var_dump($this->sqlLog);
         return $this->sqlLog;
     }
 

@@ -55,9 +55,9 @@ class Model extends Db
             'COMMENT'=>'列数据版本号从0开始',//字段说明
         ],
         'del'=>[
-            'TYPE'=>'int(1)',
-            'DEFAULT'=>1,//默认值
-            'COMMENT'=>'软删除1正常2删除',//字段说明
+            'TYPE'=>"ENUM('1','2','3')",
+            'DEFAULT'=>1,//默认值 1正常 2 删除 3 异次元
+            'COMMENT'=>'软删除默认值1， 1正常 2 删除 3 异次元',//字段说明
         ],
         'creation_time'=>[
             'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
