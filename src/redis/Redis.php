@@ -23,6 +23,10 @@ class Redis
         'session_name' => '', // sessionkey前缀
         'type' => 'user', // 链接类型
     ];
+    /**
+     * @var null|\Redis
+     */
+    protected static $object = null;
 
     public function __construct($config = [])
     {
@@ -50,6 +54,19 @@ class Redis
     {
         return $this->$name;
         // TODO: Implement __get() method.
+    }
+
+    public static function init($config=[])
+    {
+        /**
+         * 判断是否已经有这个对象
+         */
+        if(self::$object != null){
+            return self::$object;
+        }else{
+            return self::$object = new static($config);
+        }
+
     }
 
 }
