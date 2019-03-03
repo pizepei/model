@@ -34,15 +34,23 @@ class Redis
         if (!extension_loaded('redis')) {
             throw new Exception('not support:redis');
         }
+        /**
+         * 设置配置
+         */
+        if($config != []){
+            //prefix
+            $config = \Config::REDIS;
+            $this->config = array_merge($this->config, $config);
+        }
 
         try{
-            $this->config = array_merge($this->config, $config);
             $redis = new \Redis();
             $redis->connect($this->config['host'], $this->config['port'],1);
             if(!empty($this->config['password'])){
                 $redis->auth($this->config['password']);//登录验证密码，返回【true | false】
             }
             $redis->select($this->config['select']);
+            $redis->setOption(\Redis::OPT_PREFIX, $this->config['prefix']??'');
             $this->redis = $redis;
             return $this->redis;
 
@@ -50,10 +58,20 @@ class Redis
             exit(json_encode(['code'=>1001,'Message'=>$e->getMessage()]));
         }
     }
+
+    /**
+     * @Author pizepei
+     * @Created 2019/3/3 18:07
+     *
+     * @param $name
+     * @return mixed
+     *
+     * @title 魔术方法
+     *
+     */
     public function __get($name)
     {
         return $this->$name;
-        // TODO: Implement __get() method.
     }
 
     public static function init($config=[])
