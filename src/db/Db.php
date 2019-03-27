@@ -1002,11 +1002,18 @@ class Db
         $this->execute_bindValue = [':id'=>$id];
         return $this->constructorSend(false);
     }
-    /*
+
+    /**
      * 获取一条数据
+     * @param array $field
+     * @return mixed
+     * @throws \Exception
      */
-    public function fetch()
+    public function fetch(array $field =[])
     {
+        if(!empty($field)){
+            $this->field($field);
+        }
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
         return $this->constructorSend(false);
     }
@@ -1389,8 +1396,10 @@ class Db
 
     /**
      * 设置需要查询的field
+     * @param array $data
+     * @return $this
      */
-    public function field($data)
+    public function field(array $data)
     {
         $field = '';
         foreach ($data as $k=>$v){
