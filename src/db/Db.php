@@ -271,6 +271,14 @@ class Db
     ];
 
     /**
+     *数据替换模板:replace  拼接 field
+     */
+    const replace_field  =[
+        '数据库值'=>'显示值',
+    ];
+
+
+    /**
      * 当前类名
      * @var string
      */
@@ -1179,11 +1187,12 @@ class Db
                             $lastInsertId = "'".implode("','",$lastInsertId)."'";
                             /**
                              *获取已经插入的 InsertId
+                             * database
                              */
-                            if(isset($this->structure['update_time'])){
-                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}`,`update_time` FROM `oauth_module`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
+                            if(isset($this->structure['update_time'])){//static::$alterConfig
+                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}`,`update_time` FROM `".static::$alterConfig['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
                             }else{
-                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}` FROM `oauth_module`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
+                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}` FROM `".static::$alterConfig['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
                             }
 
                             return $this->inversion($this->INDEX_PRI,$this->query($lastInsertIdSql),true);
@@ -1969,6 +1978,78 @@ class Db
     }
 
 
+    /**
+     * @Author pizepei
+     * @Created 2019/3/28 22:51
+     * @param string $way
+     * @param array  $template
+     * @param array  $field
+     * @return null
+     * @throws \Exception
+     * @title  替换数据
+     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
+     *
+     */
+    public function replaceField(string $way,array $template ,array $field=[])
+    {
+        /**
+         * 判断模式
+         */
+        if(!($way === 'fetch' || $way === 'fetchAll')){
+            throw new \Exception('way 不是 fetch|fetchAll');
+        }
+        /**
+         * 判断字段模板是否存在
+         */
+        foreach($template as $templateValue){
+            $const = 'replace_'.$templateValue;
+            if(!isset($this->$const)){
+                throw new \Exception($templateValue.'模板不存在');
+            }
+        }
+        /**
+         * 获取数据
+         */
+        $data = $this->$way($field);
+        if(empty($data)){return null;}
+
+        /**
+         * 区别模式
+         */
+        if($way === 'fetch'){
+            $this->foreachReplaceField($data,$template);
+        }else if($way === 'fetchAll'){
+            foreach($data as $key=>&$value)
+            {
+                $this->foreachReplaceField($value,$template);
+            }
+        }
+        return $data;
+
+    }
+
+    /**
+     * @Author pizepei
+     * @Created 2019/3/28 23:08
+     * @param $data 数据
+     * @param $template 模板
+
+     * @title  方法标题（一般是方法的简称）
+     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
+     */
+    protected function foreachReplaceField(&$data,$template)
+    {
+        foreach($data as $key=>&$value)
+        {
+            /**
+             * 是否需要转换
+             */
+            if(in_array($key,$template)){
+                $const = 'replace_'.$key;
+                $value = $this->$const[$value];
+            }
+        }
+    }
     /**
      * 思考
      *
