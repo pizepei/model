@@ -1432,7 +1432,7 @@ class Db
     protected $insertSafety = true;
 
     /**
-     * 批量插入或者插入
+     * 批量插入或者插入更新
      * @param $data
      * @param bool $safety 默认开启安全模式
      * @return mixed
@@ -1781,6 +1781,54 @@ class Db
 
     }
 
+
+    /**
+     * @Author pizepei
+     * @Created 2019/3/30 22:57
+     *
+     * @param array $data
+     * @return array
+     * @throws \Exception
+     * @title  修改方法
+     * @explain 主要用类where
+     */
+    public function update(array  $data)
+    {
+        if(empty($this->wheresql)){
+            throw new \Exception('查询错误sql错误');
+        }
+        $this->updateContent($data);
+        $this->sql = 'UPDATE '.'`'.$this->table.'` SET  '.$this->updateContent.' WHERE '.$this->wheresql;
+        return $this->constructorSendUpdate(true);
+    }
+
+    /**
+     * 拼接的修改的sql
+     * @var string
+     */
+    protected $updateContent = '';
+
+
+    /**
+     * @Author pizepei
+     * @Created 2019/3/30 22:52
+     * @param $data
+     * @title  拼接修改sql
+     * @explain 拼接修改sql
+     *
+     */
+    protected function updateContent($data)
+    {
+        $data = [$data];
+        $this->filtrationField($data);
+        $this->updateContent = '';
+        foreach($data[0] as $key=>$value){
+            $this->execute_bindValue[':uc'.$key] = $value;
+            $this->updateContent .= ',`'.$key.'` = '.":uc".$key." ";
+        }
+        $this->updateContent = ltrim($this->updateContent,',');
+    }
+
     /**
      * 添加(不判断是否是主键)
      * @param $data
@@ -1990,7 +2038,7 @@ class Db
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
      *
      */
-    public function replaceField(string $way,array $template ,array $field=[])
+    public function replaceField(string $way = 'fetch',array $template ,array $field=[])
     {
         /**
          * 判断模式
