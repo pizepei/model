@@ -42,7 +42,7 @@ class Cache{
     /**
      * 初始化配置
      */
-    public static function init($key,$data,$period)
+    protected static function init($key,$data,$period)
     {
         /**
          * 获取缓存配置
@@ -99,7 +99,8 @@ class Cache{
         /**
          * 获取缓存配置
          */
-        self::$config = Config::UNIVERSAL['cache'];
+        self::$config = \Config::UNIVERSAL['cache'];
+
         /**
          * 初始化数据
          */
