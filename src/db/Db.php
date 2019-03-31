@@ -1082,7 +1082,7 @@ class Db
              * 保存历史sql数据
              * 获取完整的sql$this->replace();
              */
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $this->replace();
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
 
             /**
              * 查询缓存
@@ -1090,7 +1090,10 @@ class Db
              */
             if($this->cacheStatus){
                 $cacheData = $this->getCache();
-                if($cacheData){ return $cacheData;}
+                if($cacheData){
+                    $this->eliminateSql();
+                    return $cacheData;
+                }
             }
             /**
              * 准备sql
@@ -1146,7 +1149,7 @@ class Db
     public function constructorSendUpdate($type = true)
     {
         try {
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table] = $this->replace();
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
             /**
              * 准备sql
              */
@@ -1219,6 +1222,7 @@ class Db
     protected function eliminateSql()
     {
         $this->sql = '';
+        $this->sqlLog = [];
         $this->wheresql = '';
         $this->field = $this->fieldSrr;
         $this->cacheStatus = false;
@@ -1903,7 +1907,7 @@ class Db
      * 缓存有效期
      * @var int
      */
-    protected $period = 0;
+    protected $cachePeriod = 0;
     /**
      * 缓存key
      * @var null
@@ -1913,16 +1917,16 @@ class Db
      * 缓存操作
      * 注意  ： 只有查询使用缓存，其他存在不使用缓存
      * @param $key
-     * @param $period
+     * @param $cachePeriod
      * @return mixed
      */
-    public function cache($key,$period = 0)
+    public function cache($key,$cachePeriod = 0)
     {
         /**
          * 设置缓存开启状态
          */
         $this->cacheStatus = true;
-        $this->period = $period;
+        $this->cachePeriod = $cachePeriod;
         $this->cacheKey = $key;
         return $this;
     }
@@ -1934,15 +1938,19 @@ class Db
         /**
          * 判断是否分组
          */
+        $cacheKey = $this->cacheKey;
         if(is_array($this->cacheKey) && count($this->cacheKey) == 2){
-            $group = $this->cacheKey[0];
-            $key = $this->cacheKey[1];
-            $this->cacheKey = [$group , $key.md5( $this->sql )];
-            $data = Cache::get($this->cacheKey,'db');
+
+            $cacheKey[1] = $cacheKey[1].'_'.md5($this->replace()['Sql']);
+
+        }else if (is_array($cacheKey) && count($cacheKey) != 2){
+
+            throw new \Exception('cacheKey数组必须是2个值');
+
         }else{
-            $this->cacheKey = $this->cacheKey.md5( $this->sql );
-            $data = Cache::get( $this->cacheKey,'db');
+            $cacheKey = $cacheKey.'_'.md5($this->replace()['Sql']);
         }
+        $data = Cache::get($cacheKey,'db');
         return  $data;
     }
     /**
@@ -1950,7 +1958,17 @@ class Db
      */
     protected function setCache($data)
     {
-        return Cache::set($this->cacheKey,$data,$this->period,'db');
+        $cacheKey = $this->cacheKey;
+        if(is_array($cacheKey) && count($cacheKey) == 2){
+
+            $cacheKey[1] = $cacheKey[1].'_'.md5($this->replace()['Sql']);
+
+        }else if (is_array($cacheKey) && count($cacheKey) != 2){
+            throw new \Exception('cacheKey数组必须是2个值');
+        }else{
+            $cacheKey = $cacheKey.'_'.md5($this->replace()['Sql']);
+        }
+        return Cache::set($cacheKey,$data,$this->cachePeriod,'db');
     }
 
     /**
@@ -1962,7 +1980,7 @@ class Db
         foreach ($this->execute_bindValue as $k=>$v){
             $sql = str_replace($k,'`'.$v.'`',$sql);
         }
-        $this->sqlLog[] = ['Sql'=>$sql,'Cache'=>$this->cacheStatus];
+        $this->sqlLog = ['Sql'=>$sql,'Cache'=>$this->cacheStatus];
         return $this->sqlLog;
     }
 
