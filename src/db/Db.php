@@ -292,12 +292,10 @@ class Db
              */
             $modelObject = $value::table();
             $modelObject->CreateATableThatDoesNotExist();
-
         }
         /**
          * 开始初始化
          */
-        var_dump($pathData);
     }
     /**
      * 错误处理
