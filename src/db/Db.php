@@ -7,6 +7,7 @@
 namespace pizepei\model\db;
 use pizepei\func\Func;
 use pizepei\model\cache\Cache;
+use pizepei\staging\MyException;
 
 class Db
 {
@@ -189,45 +190,7 @@ class Db
      * 表结构
      * @var array
      */
-    protected $structure = [
-        'id'=>[
-            'TYPE'=>'int',//数据类型（默认不为空）NOT NULL
-            'DEFAULT'=>false,//默认值
-            'COMMENT'=>'主键id',//字段说明
-            'AUTO_INCREMENT'=>true,//自增  默认不
-        ],
-        'version'=>[
-            'TYPE'=>'int',
-            'DEFAULT'=>0,//默认值
-            'COMMENT'=>'列数据版本号从0开始',//字段说明
-        ],
-        'del'=>[
-            'TYPE'=>'int(1)',
-            'DEFAULT'=>1,//默认值
-            'COMMENT'=>'软删除1正常2删除',//字段说明
-        ],
-        'update_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
-            'DEFAULT'=>false,//默认值
-            'COMMENT'=>'更新时间',//字段说明
-        ],
-        'creation_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
-            'DEFAULT'=>false,//默认值
-            'COMMENT'=>'创建时间',//字段说明
-        ],
-        'PRIMARY'=>'id',//主键
-        /**
-         * UNIQUE 唯一
-         * SPATIAL 空间
-         * NORMAL 普通 key
-         * FULLTEXT 文本
-         */
-        'INDEX'=>[
-            //  NORMAL KEY `create_time` (`create_time`) USING BTREE COMMENT '参数'
-            ['TYPE'=>'key','FIELD'=>'creation_time','NAME'=>'creation_time','USING'=>'BTREE','COMMENT'=>'创建时间'],
-        ],//索引 KEY `ip` (`ip`) COMMENT 'sss '
-    ];
+    protected $structure = [];
     /**
      * @var string 表备注（不可包含@版本号关键字）
      */
@@ -289,6 +252,8 @@ class Db
         $this->table = $table;
         $this->instance = $instance;
 
+        $ClassName =explode('\\', get_called_class() );
+        $this->ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
         /**
          * 判断表是否存在
          */
@@ -303,6 +268,37 @@ class Db
 
     }
 
+    /**
+     * 初始化表结构
+     * 只适合model目录下以model命名空间开始的类
+     * 建议在自动化部署时触发该方法
+     */
+    public function initStructure($module='')
+    {
+        $path = '..'.DIRECTORY_SEPARATOR.'model';
+        /**
+         * 拼接模块路径
+         */
+        if($module !=''){ $path = $path.DIRECTORY_SEPARATOR.$module;}
+        $pathData=[];
+        $this->getFilePathData($path,$pathData);
+        foreach($pathData as &$value){
+            /**
+             * 清除../   替换  /  \  .php
+             */
+            $value = str_replace('.php','',str_replace(DIRECTORY_SEPARATOR,"\\",str_replace('..'.DIRECTORY_SEPARATOR,'',$value)));
+            /**
+             * 实例化
+             */
+            $modelObject = $value::table();
+            $modelObject->CreateATableThatDoesNotExist();
+
+        }
+        /**
+         * 开始初始化
+         */
+        var_dump($pathData);
+    }
     /**
      * 错误处理
      * @param $e
@@ -322,7 +318,9 @@ class Db
          * 1062：字段值重复，入库失败  1169：字段值重复，更新记录失败
          */
         if($e->getCode() == '42S02'){
-            $this->CreateATableThatDoesNotExist();
+            if($this->ClassName != 'db'){
+                $this->CreateATableThatDoesNotExist();
+            }
         }
 
         /**
@@ -333,16 +331,24 @@ class Db
          * 清除sql
          */
         $this->eliminateSql();
-        die ("Error!: " . $e->getMessage() . "query<br/>");
+        /**
+         * 使用
+         */
+        new MyException('./',$e,self::ERROR_CODE);
     }
     /**
      * 如果表不存在
      *      进行的操作
      */
-    protected function CreateATableThatDoesNotExist()
+    public function CreateATableThatDoesNotExist()
     {
-        $this->setStructure();
-        $this->showCreateTableCache();
+        /**
+         * 如果是空模型
+         */
+        if(isset($this->structure) && !empty($this->structure)){
+            $this->setStructure();
+            $this->showCreateTableCache();
+        }
     }
     /**
      * @Author: pizepei
@@ -358,15 +364,9 @@ class Db
          * show databases like 'db_name';表
          * show tables like 'table_name';数据库
          */
-
-        $result_table = $this->query("SELECT table_name FROM information_schema.TABLES WHERE table_name ='{$this->table}'"); //返回一个PDOStatement对象
         //$result_table = $this->instance->query("show tables like '".$this->table."'"); //返回一个PDOStatement对象
         //$result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-        /**
-         * 获取实例化后的类名称
-         */
-        $ClassName =explode('\\', get_called_class() );
-        $this->ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
+
         /**
          * 判断是否是db类
          */
@@ -381,6 +381,7 @@ class Db
                 }
             }
             $this->structure  = array_merge($this->structure,$this->structureInit);
+            $result_table = $this->query("SELECT table_name FROM information_schema.TABLES WHERE table_name ='{$this->table}'"); //返回一个PDOStatement对象
 
             if(empty($result_table)){
                 /**
@@ -426,11 +427,15 @@ class Db
                         $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
                     }
                 }
-                if(is_array($this->structure['PRIMARY'])){
-                    $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY'][0].") COMMENT '".$this->structure['PRIMARY'][1]."',".PHP_EOL;
-                }else{
-                    $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY']."),".PHP_EOL;
+                if(isset($this->structure['PRIMARY']))
+                {
+                    if(is_array($this->structure['PRIMARY'])){
+                        $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY'][0].") COMMENT '".$this->structure['PRIMARY'][1]."',".PHP_EOL;
+                    }else{
+                        $createTablrSql .="PRIMARY KEY (".$this->structure['PRIMARY']."),".PHP_EOL;
+                    }
                 }
+
                 /**
                  * 循环处理 index
                  */
@@ -639,7 +644,6 @@ class Db
             }else{
                 $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
             }
-
             $this->safetySql($sql);
 
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
@@ -655,7 +659,7 @@ class Db
      *
      * @param $dql
      *
-     * @title  方法标题（一般是方法的简称）
+     * @title  安全过滤
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
      *
      */
@@ -858,6 +862,8 @@ class Db
          * 缓存完整的表结构
          */
         $this->table_create = Cache::get(['table_create',$this->table],'db');
+
+
         if(!$this->table_create){
             /**
              * 获取完整的表结构
@@ -1561,6 +1567,7 @@ class Db
             /**
              * 自动写入uuid
              */
+            var_dump($this->ClassName);
             if($this->ClassName !='db'){
                 if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
                     $uuid = self::getUuid(true);
@@ -2116,6 +2123,42 @@ class Db
             }
         }
     }
+
+    /**
+     * 获取所有文件目录地址
+     */
+    public function getFilePathData($dir,&$fileData)
+    {
+        /**
+         * 打开应用目录
+         * 获取所有文件路径
+         */
+        if (is_dir($dir)){
+            if ($dh = opendir($dir)){
+                while (($file = readdir($dh)) !== false){
+                    if($file != '.' && $file != '..'){
+                        /**
+                         * 判断是否是目录
+                         */
+                        if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
+                            $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData);
+                            // echo "目录:" . $file . "<br>";
+                        }else{
+                            /**
+                             * 判断是否是php文件
+                             */
+                            if(strrchr($file,'.php') == '.php'){
+                                $fileData[] = $dir.DIRECTORY_SEPARATOR.$file;
+                            }
+                            //                            echo "文件:" . $file . "<br>";
+                        }
+                    }
+                }
+                closedir($dh);
+            }
+        }
+    }
+
     /**
      * 思考
      *
@@ -2134,5 +2177,12 @@ class Db
      *过滤器
      *
      */
-
+    /**
+     * 错误代码
+     * 100000
+     */
+    const ERROR_CODE =[
+        //代码  友善提示（如果不是int直接提示），联系方式[开发负责人]，开发提示
+        100000=>['系统方面','开发错误说明','功能模块','联系方式[开发负责人]'],
+    ];
 }
