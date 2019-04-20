@@ -172,7 +172,9 @@ class File implements  Cache
             /**
              * 删除缓存
              */
-            $result = @unlink(static::$path);
+            $result =false;
+            if(file_exists (static::$path)) { $result = @unlink(static::$path); }
+
         }else{
             /**
              * 设置缓存
