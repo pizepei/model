@@ -67,7 +67,7 @@ class Cache{
 
     /**
      * 设置缓存
-     * @param        $key
+     * @param        $key [分组 ,key]
      * @param        $data
      * @param int    $period
      * @param string $type
@@ -90,7 +90,7 @@ class Cache{
 
     /**
      * 获取缓存
-     * @param        $key
+     * @param        $key [分组 ,key]
      * @param string $type
      * @return mixed
      */

@@ -11,7 +11,7 @@ interface  Cache
 {
     /**
      * 设置缓存接口
-     * @param $key
+     * @param $key [分组 ,key]
      * @param $data
      * @param $period
      * @param $config
