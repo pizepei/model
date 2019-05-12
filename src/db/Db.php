@@ -2051,16 +2051,13 @@ class Db
 
 
     /**
-     * @Author pizepei
-     * @Created 2019/3/28 22:51
-     * @param string $way
-     * @param array  $template
-     * @param array  $field
-     * @return null
-     * @throws \Exception
      * @title  替换数据
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
-     *
+     * @param string $way
+     * @param array $template
+     * @param array $field
+     * @return |null
+     * @throws \Exception
      */
     public function replaceField(string $way = 'fetch',array $template ,array $field=[])
     {
