@@ -247,6 +247,12 @@ class Db
      */
     protected $ClassName = '';
 
+    /**
+     * Db constructor.
+     * @param $instance
+     * @param $table
+     * @throws \Exception
+     */
     public function __construct($instance,$table)
     {
         $this->table = $table;
@@ -272,6 +278,8 @@ class Db
      * 初始化表结构
      * 只适合model目录下以model命名空间开始的类
      * 建议在自动化部署时触发该方法
+     * @param string $module
+     * @return array
      */
     public function initStructure($module='')
     {
@@ -335,9 +343,11 @@ class Db
          */
         new MyException('./',$e,self::ERROR_CODE);
     }
+
     /**
      * 如果表不存在
      *      进行的操作
+     * @throws \Exception
      */
     public function CreateATableThatDoesNotExist()
     {
@@ -349,12 +359,14 @@ class Db
             $this->showCreateTableCache();
         }
     }
+
     /**
      * @Author: pizepei
      * @Created: 2018/12/31 22:55
      * @title  设置表结构
      * @explain 判断表是否存在、创建表、判断表结构修改
      *
+     * @throws \Exception
      */
     protected function setStructure()
     {
@@ -533,8 +545,10 @@ class Db
         'ADD-SPATIAL'=>' ADD SPATIAL INDEX',//增加索引 ALTER TABLE table_name ADD [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name (index_col_name,...) [USING index_type]
         'DROP-INDEX'=>' DROP INDEX  ',//删除ALTER TABLE table_name  DROP INDEX index_name;  (修改索引 先删除掉原索引，再根据需要创建一个同名的索引)
     ];
+
     /**
      * 版本更新
+     * @throws \Exception
      */
     protected function versionUpdate()
     {
@@ -658,9 +672,10 @@ class Db
      *
      * @param $dql
      *
+     * @throws \Exception
      * @title  安全过滤
-     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
-     *
+     * @explain 一般是方
+     * 法功能说明、逻辑说明、注意事项等。
      */
     protected function safetySql($dql)
     {
@@ -675,12 +690,14 @@ class Db
 
 
     }
+
     /**
      * @Author: pizepei
      * @Created: 2019/1/1 12:07
      * @param string $table
-     * @param bool   $prefix
+     * @param bool $prefix
      * @return bool|mixed|\pizepei\model\db\Db
+     * @throws \Exception
      * @title  方法标题（一般是方法的简称）
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
      */
@@ -759,7 +776,7 @@ class Db
      * @Created: 2019/1/1 12:08
      *
      * @param $table
-     * @param $prefix 是否使用表前缀
+     * @param bool $prefix 是否使用表前缀
      *
      * @title  获取表名称
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
@@ -828,11 +845,10 @@ class Db
     }
 
 
-
-
     /**
      * 创建返回对象
      * @return bool|static
+     * @throws \Exception
      */
     private  static function setObjectPattern()
     {
@@ -851,6 +867,7 @@ class Db
             return new static(self::$alterInstance[self::$dsn],self::$altertabl);
         }
     }
+
     /**
      * 获取表结构
      * 缓存表结构
@@ -986,9 +1003,12 @@ class Db
         $this->INDEX_PRI = array_search('PRI',$this->table_describe_index);
         $this->fieldSrr = $this->field;
     }
+
     /**
      * 通过id查询
      * @param $id
+     * @return mixed
+     * @throws \Exception
      */
     public function get($id)
     {
@@ -1030,8 +1050,10 @@ class Db
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
         return $this->constructorSend(false);
     }
+
     /**
      *获取所有数据
+     * @throws \Exception
      */
     public function fetchAll()
     {
@@ -1074,10 +1096,12 @@ class Db
         $this->forceIndex_sql = ' force index('.$str.')';
         return $this;
     }
+
     /**
-     *查询构造器
-     *查询构造器
-     *查询构造器
+     * 查询构造器
+     * @param bool $all
+     * @return mixed
+     * @throws \Exception
      */
     public function constructorSend($all = true)
     {
@@ -1148,8 +1172,12 @@ class Db
         }
     }
     protected $lastInsertId = [];
+
     /**
-     *删除、更新插入 构造器
+     * 删除、更新插入 构造器
+     * @param bool $type
+     * @return array
+     * @throws \Exception
      */
     public function constructorSendUpdate($type = true)
     {
@@ -1247,7 +1275,7 @@ class Db
     /**
      * 根据条件查询查询
      * @param array $where
-     * @param $safety 设置安全模式
+     * @param bool $safety 设置安全模式
      * @return $this
      */
     public function where(array $where,$safety = true)
@@ -1524,9 +1552,12 @@ class Db
         }
 
     }
+
     /**
      * 批量添加插入
      * @param $data
+     * @return array
+     * @throws \Exception
      */
     protected function insertAll($data)
     {
@@ -1633,6 +1664,7 @@ class Db
     /**
      * 批量更新
      * @param $data
+     * @throws \Exception
      */
     protected function updateAll($data)
     {
@@ -1842,6 +1874,8 @@ class Db
     /**
      * 添加(不判断是否是主键)
      * @param $data
+     * @return array
+     * @throws \Exception
      */
     public function add($data)
     {
@@ -1858,12 +1892,15 @@ class Db
 
         return $this->insertAll($data);
     }
+
     /**
      * 删除
      * 支持批量删除
      * 支持软删除
-     * @param array $data  ['id']
+     * @param array $data ['id']
      * @param bool $type 默认直接删除 false 为软删除
+     * @return array
+     * @throws \Exception
      */
     public function del($data = array(),$type = true)
     {
@@ -1936,8 +1973,10 @@ class Db
         $this->cacheKey = $key;
         return $this;
     }
+
     /**
      * 获取缓存
+     * @throws \Exception
      */
     protected function getCache()
     {
@@ -1959,8 +1998,10 @@ class Db
         $data = Cache::get($cacheKey,'db');
         return  $data;
     }
+
     /**
      * 设置缓存
+     * @throws \Exception
      */
     protected function setCache($data)
     {
@@ -1991,10 +2032,8 @@ class Db
     }
 
     /**
-     * 事服
-     */
-    /**
      * 开启事务
+     * @throws \Exception
      */
     public function beginTransaction()
     {
@@ -2010,8 +2049,10 @@ class Db
     {
         return $this->instance->inTransaction();
     }
+
     /**
      * 提交事务
+     * @throws \Exception
      */
     public function commit()
     {
@@ -2051,15 +2092,14 @@ class Db
 
 
     /**
-     * @title  替换数据
-     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
+     * 替换数据
      * @param string $way
      * @param array $template
-     * @param array $field
-     * @return |null
+     * @param array $field fetch
+     * @return null
      * @throws \Exception
      */
-    public function replaceField(string $way = 'fetch',array $template ,array $field=[])
+    public function replaceField(string $way,array $template ,array $field=[])
     {
         /**
          * 判断模式
@@ -2098,13 +2138,8 @@ class Db
     }
 
     /**
-     * @Author pizepei
-     * @Created 2019/3/28 23:08
-     * @param $data 数据
-     * @param $template 模板
-
-     * @title  方法标题（一般是方法的简称）
-     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
+     * @param $data
+     * @param $template
      */
     protected function foreachReplaceField(&$data,$template)
     {
