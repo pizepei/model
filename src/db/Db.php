@@ -306,13 +306,15 @@ class Db
          */
         return [];
     }
+
     /**
      * 错误处理
      * @param $e
+     * @param bool $type
+     * @throws \Exception
      */
     protected function Exception($e,$type=false)
     {
-        //var_dump($e->getCode());
         /**
          * 判断是否存在事务
          */
@@ -1529,9 +1531,12 @@ class Db
         }
 
     }
+
     /**
      * 根据主键 判断是否是更新 或者是插入
      * @param $data
+     * @return array
+     * @throws \Exception
      */
     protected function ifPudate($data)
     {
@@ -1664,6 +1669,7 @@ class Db
     /**
      * 批量更新
      * @param $data
+     * @return array
      * @throws \Exception
      */
     protected function updateAll($data)
@@ -2157,6 +2163,8 @@ class Db
 
     /**
      * 获取所有文件目录地址
+     * @param $dir
+     * @param $fileData
      */
     public function getFilePathData($dir,&$fileData)
     {
@@ -2189,7 +2197,26 @@ class Db
             }
         }
     }
-
+    /**
+     * 判断更新的字段
+     * @param $newData
+     * @param $rawData
+     * @return array
+     */
+    public function dataDifferentiation($newData,$rawData)
+    {
+        $arr = [];
+        foreach ($newData as $key=>$value)
+        {
+            if ($rawData[$key] !== $value){
+                $arr[$key] = [
+                    'new'=>$value,
+                    'raw'=>$rawData[$key],
+                ];
+            }
+        }
+        return $arr;
+    }
     /**
      * 思考
      *

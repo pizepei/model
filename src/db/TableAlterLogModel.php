@@ -41,9 +41,6 @@ class TableAlterLogModel extends Model
         'details'=>[
             'TYPE'=>'json', 'DEFAULT'=>false,'COMMENT'=>'操作细节json','NULL'=>'',
         ],
-        'details'=>[
-            'TYPE'=>'json', 'DEFAULT'=>false,'COMMENT'=>'操作细节json','NULL'=>'',
-        ],
         'sql'=>[
             'TYPE'=>'text', 'DEFAULT'=>false,'COMMENT'=>'操作sql','NULL'=>'',
         ],
