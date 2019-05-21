@@ -641,10 +641,13 @@ class Db
             $this->showCreateTableCache();
         }
     }
+
     /**
      * 原生sql
+     *
      * @param $sql
      * @return mixed
+     * @throws \Exception
      */
     public function query($sql)
     {
