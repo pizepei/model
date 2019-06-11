@@ -1057,11 +1057,16 @@ class Db
     }
 
     /**
-     *获取所有数据
-     * @throws \Exception
+     * 获取所有数据
+     * @Author 皮泽培
+     * @Created 2019/6/11 15:49
+     * @param array $field
      */
-    public function fetchAll()
+    public function fetchAll(array $field =[])
     {
+        if(!empty($field)){
+            $this->field($field);
+        }
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql);
         return $this->constructorSend();
     }
