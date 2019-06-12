@@ -1457,9 +1457,11 @@ class Db
      */
     public function field(array $data)
     {
+        //过滤
+        $this->filtrationSelectField($data);
+        //拼接
         $field = '';
         foreach ($data as $k=>$v){
-
             if(is_int($k)){
                 $field .= $v.', ';
             }else{
@@ -1513,7 +1515,7 @@ class Db
      * @Created: 2019/1/4 22:32
      * @param $data
      * @title  过滤字段
-     * @explain 一般是方法功能说明、逻辑说明、注意事项等。
+     * @explain 使用在修改、插入操作上
      */
     protected function filtrationField(&$data)
     {
@@ -1538,6 +1540,41 @@ class Db
 
         }
 
+    }
+
+    /**
+     * @Author 皮泽培
+     * @Created 2019/6/12 9:44
+     * @param $Field 需要查询的字段  字符串时是独立查询（字符串独立查询返回true 或者false）数组批量查询会自动unset()过滤非法的字段
+     * @title  路由标题
+     * @explain 路由功能说明
+
+     */
+    public function filtrationSelectField(&$Field)
+    {
+        if (is_array($Field)){
+            foreach ($Field as $key=>$value)
+            {
+                if (is_int($key))
+                {
+                    if(!isset($this->table_describe[$value])){
+                        unset($Field[$value]);
+                    }
+                }else{
+                    //关联数据  一般是取别名 或者使用了函数
+                    if(!isset($this->table_describe[$key])){
+                        unset($Field[$key]);
+                    }
+                }
+
+            }
+        }else{
+            if(isset($this->table_describe[$Field])){
+                return true;
+            }
+            //字段不存在`
+            return false;
+        }
     }
 
     /**
@@ -2225,6 +2262,48 @@ class Db
         }
         return $arr;
     }
+
+    /**
+     * @Author 皮泽培
+     * @Created 2019/6/12 10:02
+     * @param string $field 查询的字段
+     * @param int $count  重复次数
+     * @param array $exclude 需要排除的数据[field=>value]
+     * @return array
+     * @title  查询表中某个field的重复数据
+     * @explain 查询结果>=$count
+     * @throws \Exception
+     */
+    public function repeat(string $field,int $count=2,$exclude=[])
+    {
+        if (!$this->filtrationSelectField($field))
+        {
+            throw new \Exception($field.'不存在');
+        }
+        $this->execute_bindValue[':repeatField'] = $count;
+        /**
+         * 判断是否有其他排除条件
+         */
+        $whereExclude = '';
+        if ($exclude !==[])
+        {
+            $this->filtrationSelectField($exclude);
+            if (!empty($exclude)){
+                foreach ($exclude as $key=>$value)
+                {
+                    $whereExclude .= " AND {$key} <> :exclude{$key} ";
+                    $this->execute_bindValue[':exclude'.$key] = $value;
+                }
+            }
+        }
+        /**
+         * 注册变量
+         * select * from `user`where key_url in (select key_url from `user` group by key_url having count(1) >= 1)
+         */
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$field.' IN ( select '.$field.' FROM `'.$this->table.'` group by '.$field.' having count(1) >= :repeatField ) '.$whereExclude;
+        return $this->constructorSend();
+    }
+
     /**
      * 思考
      *
