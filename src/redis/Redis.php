@@ -32,7 +32,7 @@ class Redis
     {
         // 检测php环境
         if (!extension_loaded('redis')) {
-            throw new Exception('not support:redis');
+            throw new \Exception('not support:redis');
         }
         /**
          * 设置配置
