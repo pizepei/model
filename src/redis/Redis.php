@@ -28,6 +28,12 @@ class Redis
      */
     protected static $object = null;
 
+    /**
+     * Redis constructor.
+     *
+     * @param array $config
+     * @throws \Exception
+     */
     public function __construct($config = [])
     {
         // 检测php环境
