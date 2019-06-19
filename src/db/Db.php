@@ -1647,7 +1647,6 @@ class Db
             /**
              * 自动写入uuid
              */
-            var_dump($this->ClassName);
             if($this->ClassName !='db'){
                 if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
                     $uuid = self::getUuid(true);

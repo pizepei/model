@@ -10,7 +10,7 @@
 namespace pizepei\model\db;
 
 
-class RequestLogModel
+class RequestLogModel extends Model
 {
     /**
      * 表结构
@@ -18,7 +18,7 @@ class RequestLogModel
      */
     protected $structure = [
         'id'=>[
-            'TYPE'=>'uuid','DEFAULT'=>false,'COMMENT'=>'主键id','AUTO_INCREMENT'=>true,
+            'TYPE'=>'uuid','COMMENT'=>'主键uuid','DEFAULT'=>false,
         ],
         'province'=>[
             'TYPE'=>'varchar(50)', 'DEFAULT'=>'','COMMENT'=>'省',
@@ -60,16 +60,16 @@ class RequestLogModel
         ],
 
         'PRIMARY'=>'id',//主键
-
         'INDEX'=>[
             //  NORMAL KEY `create_time` (`create_time`) USING BTREE COMMENT '参数'
             ['TYPE'=>'key','FIELD'=>'ip','NAME'=>'ip','USING'=>'BTREE','COMMENT'=>'ip地址'],
+
         ],//索引 KEY `ip` (`ip`) COMMENT 'sss '
     ];
     /**
      * @var string 表备注（不可包含@版本号关键字）
      */
-    protected $table_comment = '表结构变更日志';
+    protected $table_comment = '请求日志表';
     /**
      * @var int 表版本（用来记录表结构版本）在表备注后面@$table_version
      */
