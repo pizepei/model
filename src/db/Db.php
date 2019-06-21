@@ -2269,18 +2269,25 @@ class Db
      * @Author 皮泽培
      * @Created 2019/6/12 10:02
      * @param string $field 查询的字段
-     * @param int $count  重复次数
+     * @param int $count  重复次数  查询结果>=$count
      * @param array $exclude 需要排除的数据[field=>value]
+     * @param array $pattern 模式 false 不会查询重复字段重复数会查询所有符合$count条件的数据列表， 传入id或者其他字段，会去重查询并且有repeatCount来表示重复数
      * @return array
      * @title  查询表中某个field的重复数据
-     * @explain 查询结果>=$count
+     * @explain 查询结果>=$count，$pattern 模式 false 不会查询重复字段重复数会查询所有符合$count条件的数据列表， 传入id或者其他字段，会去重查询并且有repeatCount来表示重复数
      * @throws \Exception
      */
-    public function repeat(string $field,int $count=2,$exclude=[])
+    public function repeat(string $field,int $count=2,$exclude=[],$pattern=false)
     {
         if (!$this->filtrationSelectField($field))
         {
             throw new \Exception($field.'不存在');
+        }
+        if ($pattern){
+            if (!$this->filtrationSelectField($pattern))
+            {
+                throw new \Exception($pattern.'不存在');
+            }
         }
         $this->execute_bindValue[':repeatField'] = $count;
         /**
@@ -2302,13 +2309,47 @@ class Db
          * 注册变量
          * select * from `user`where key_url in (select key_url from `user` group by key_url having count(1) >= 1)
          */
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$field.' IN ( select '.$field.' FROM `'.$this->table.'` group by '.$field.' having count(1) >= :repeatField ) '.$whereExclude;
+        if ($pattern){$this->field .= ',count('.$field.') as repeatCount '; }
+
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.($pattern?$pattern:$field).' IN ( select '.($pattern?$pattern:$field).' FROM `'.$this->table.'` group by '.$field.' having count(1) >= :repeatField ) '.$whereExclude;
         return $this->constructorSend();
     }
 
     /**
+     * @Author 皮泽培
+     * @Created 2019/6/21 15:31
+     * @title  join联合查询
+     * @explain join联合查询
+     * @throws \Exception
+     */
+    public function join ()
+    {
+        /**
+        * 有表 table1 table2 table3
+            SELECT employee_name
+            FROM (table3 c LEFT JOIN TABLE1 a
+            ON c.employee_id=a.employee_id )
+            LEFT JOIN table2 b ON b.company_id=a.company_id
+            WHERE company_name ='A' and employee_age<30;
+         */
+    }
+    /**
+     * @Author 皮泽培
+     * @Created 2019/6/21 15:40
+     * @title  排除字段非null
+     * @explain join联合查询
+     * @throws \Exception
+     */
+    public function notNull()
+    {
+        //SELECT * FROM 表名 WHERE 字段名 IS NOT NULL AND 字段名 <> '';
+    }
+
+
+
+    /**
      * 思考
-     *
+     *查询sql中数据不为空并且不为null
      * 表不存在创建表  创建表可创建默认数据
      *
      * 简单的where   加是否过滤软删除
