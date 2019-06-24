@@ -1099,27 +1099,32 @@ class Db
         /**
          * 判断是否为all
          */
-        if (!$all)
-        {
-            $data[] = $data;
-        }
-        foreach ($this->structure as &$value)
-        {
-            if ($value['TYPE']=='json')
-            {
+        if (!$all)$data[] = $data;
 
-            }
-        }
-//        var_dump($this->structure);
         /**
          * 循环表结构判断是否有json字段 如果你有就直接返回
          */
-
-
-
+        $jsonKey = [];
+        foreach ($this->structure as $key=>$value)
+        {
+            if($key !== 'INDEX' && $key !== 'PRIMARY')
+            {
+                if ($value['TYPE']=='json')
+                {
+                    $jsonKey[$key] = $value;
+                }
+            }
+         }
         /**
-         *
+         *循环处理json字符串
          */
+        foreach($data as $key=>&$value)
+        {
+            if(isset($jsonKey[$key]) && !empty($value))
+            {
+                $value = json_decode($value,true);
+            }
+        }
         return $data;
     }
     /**
