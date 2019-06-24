@@ -1056,7 +1056,13 @@ class Db
             $this->field($field);
         }
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
-        return $this->constructorSend(false);
+        $data = $this->constructorSend(false);
+
+        if (empty($data) || $this->ClassName =='db')
+        {
+           return $data;
+        }
+        return $this->fetchJsonTurnArray($data,false);
     }
 
     /**
@@ -1071,7 +1077,50 @@ class Db
             $this->field($field);
         }
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql);
-        return $this->constructorSend();
+        $data = $this->constructorSend();
+        if (empty($data) || $this->ClassName =='db')
+        {
+            return $data;
+        }
+        return $this->fetchJsonTurnArray($data);
+    }
+
+    /**
+     * @Author 皮泽培
+     * @Created 2019/6/24 17:49
+     * @param $data 数据
+     * @param $all
+     * @title  把表结构为json的数据转换为array
+     * @explain 路由功能说明
+     * @throws \Exception
+     */
+    public function fetchJsonTurnArray($data,$all)
+    {
+        /**
+         * 判断是否为all
+         */
+        if (!$all)
+        {
+            $data[] = $data;
+        }
+        foreach ($this->structure as &$value)
+        {
+            if ($value['TYPE']=='json')
+            {
+
+            }
+        }
+//        var_dump($this->structure);
+        /**
+         * 循环表结构判断是否有json字段 如果你有就直接返回
+         */
+
+
+
+        /**
+         *
+         */
+        return $data;
     }
     /**
      * 强制使用index
