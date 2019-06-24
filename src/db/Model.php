@@ -60,12 +60,12 @@ class Model extends Db
             'COMMENT'=>'软删除默认值1， 1正常 2 删除 3 异次元',//字段说明
         ],
         'creation_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'TYPE'=>'timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)',
             'DEFAULT'=>false,//默认值
             'COMMENT'=>'创建时间',//字段说明
         ],
         'update_time'=>[
-            'TYPE'=>'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  ON UPDATE CURRENT_TIMESTAMP',
+            'TYPE'=>'timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)  ON UPDATE CURRENT_TIMESTAMP(6)',
             'DEFAULT'=>false,//默认值
             'COMMENT'=>'更新时间',//字段说明
         ],
