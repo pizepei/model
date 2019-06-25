@@ -1041,7 +1041,13 @@ class Db
          * 准备变量
          */
         $this->execute_bindValue = [':id'=>$id];
-        return $this->constructorSend(false);
+        $data =  $this->constructorSend(false);
+        if (empty($data) || $this->ClassName =='db')
+        {
+            return $data;
+        }
+        return $this->fetchJsonTurnArray($data,false);
+
     }
 
     /**
