@@ -1099,8 +1099,7 @@ class Db
         /**
          * 判断是否为all
          */
-        if (!$all)$data[] = $data;
-
+        if (!$all)$TurnArray[] = $data;
         /**
          * 循环表结构判断是否有json字段 如果你有就直接返回
          */
@@ -1118,13 +1117,14 @@ class Db
         /**
          *循环处理json字符串
          */
-        foreach($data as $key=>&$value)
+        foreach($TurnArray as $key=>&$value)
         {
             if(isset($jsonKey[$key]) && !empty($value))
             {
                 $value = json_decode($value,true);
             }
         }
+        if (!$all)$data = $TurnArray[0];
         return $data;
     }
     /**
