@@ -1120,14 +1120,18 @@ class Db
                 }
             }
          }
+
         /**
          *循环处理json字符串
          */
-        foreach($TurnArray as $key=>&$value)
+        foreach($TurnArray as &$value)
         {
-            if(isset($jsonKey[$key]) && !empty($value))
-            {
-                $value = json_decode($value,true);
+            foreach($value as $key=>&$val){
+
+                if(isset($jsonKey[$key]) && !empty($val))
+                {
+                    $val = json_decode($val,true);
+                }
             }
         }
         if (!$all)$data = $TurnArray[0];
