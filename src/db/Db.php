@@ -979,7 +979,7 @@ class Db
             $FieldStr = '';
 
             foreach ($create as $key =>$value){
-                $FieldStr .= $value['Field'].',';
+                $FieldStr .= '`'.$value['Field'].'`,';
                 $describeArrar[$value['Field']] = $value;
 //                [
 //                    'Type'=>$value['Type'],//数据结构
