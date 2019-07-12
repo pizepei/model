@@ -1061,7 +1061,10 @@ class Db
         if(!empty($field)){
             $this->field($field);
         }
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.$this->wheresql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'`';
+        if (!empty($this->wheresql)){
+            $this->sql .= ' WHERE '.$this->wheresql;
+        }
         $data = $this->constructorSend(false);
 
         if (empty($data) || $this->ClassName =='db')
@@ -1088,7 +1091,7 @@ class Db
         {
             return $data;
         }
-        return $this->fetchJsonTurnArray($data);
+        return $this->fetchJsonTurnArray($data,true);
     }
 
     /**
@@ -1105,7 +1108,11 @@ class Db
         /**
          * 判断是否为all
          */
-        if (!$all)$TurnArray[] = $data;
+        if (!$all){
+            $TurnArray[] = $data;
+        }else{
+            $TurnArray = $data;
+        }
         /**
          * 循环表结构判断是否有json字段 如果你有就直接返回
          */
@@ -1120,7 +1127,6 @@ class Db
                 }
             }
          }
-
         /**
          *循环处理json字符串
          */
@@ -2378,6 +2384,29 @@ class Db
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` WHERE '.($pattern?$pattern:$field).' IN ( select '.($pattern?$pattern:$field).' FROM `'.$this->table.'` group by '.$field.' having count(1) >= :repeatField ) '.$whereExclude;
         return $this->constructorSend();
     }
+
+    /**
+     * limit 查询
+     * @param int $begin
+     * @param int $finish
+     */
+    public function limit($begin=0,$finish=1,array $field =[])
+    {
+
+        if(!empty($field)){
+            $this->field($field);
+        }
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'` LIMIT '.$begin.', '.$finish.' ':'` WHERE '.$this->wheresql);
+        $data = $this->constructorSend();
+        if (empty($data) || $this->ClassName =='db')
+        {
+            return $data;
+        }
+        return $this->fetchJsonTurnArray($data,true);
+
+    }
+//    LIMIT 0, 1000
+
 
     /**
      * @Author 皮泽培
