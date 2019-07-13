@@ -1607,6 +1607,7 @@ class Db
                     /**
                      * 删除
                      */
+                    var_dump($kk,$v[$kk]);
                     unset($data[$k][$kk]);
                 }
             }
