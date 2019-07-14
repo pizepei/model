@@ -2458,6 +2458,10 @@ class Db
      *
      *过滤器
      *
+     * LIKE
+     * 匹配度
+     * select id,name,length(name),length(replace(name,'爱','')) from `open_wechat_keyword`  where  `name` LIKE '%爱%'  order by length(replace(name,'爱',''))
+     *
      */
     /**
      * 错误代码
