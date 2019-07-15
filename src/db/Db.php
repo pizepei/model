@@ -824,7 +824,7 @@ class Db
                     self::$altertabl = static::$alterConfig['prefix'].$table;
                 }
             }else{
-                self::$altertabl = static::$alterConfig['prefix'].$tablestr;
+                self::$altertabl = static::$alterConfig['prefix'].$tablestr.(empty($table)?'':'_'.$table);
             }
 
     }

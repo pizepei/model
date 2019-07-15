@@ -12,8 +12,8 @@
       "require": {
           "php": ">=7.0.0",
           "pizepei/config-ng": "dev-master",
+          "pizepei/helper": "dev-master",
           "pizepei/func": "dev-master"
-
       },
       "autoload": {
           "psr-4": {
