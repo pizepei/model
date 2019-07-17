@@ -8,6 +8,7 @@
  */
 namespace pizepei\model\cache\drive;
 use pizepei\func\Func;
+use pizepei\helper\Helper;
 use pizepei\model\cache\drive\Cache;
 class File implements  Cache
 {
@@ -87,8 +88,7 @@ class File implements  Cache
          * 文件处理类
          *  创建目录方法
          */
-        Func:: M('file') ::createDir(static::$targetDir);
-
+        Helper::file()->createDir(static::$targetDir);
         static::$key = $key;
         /**
          * 判断是否分组
