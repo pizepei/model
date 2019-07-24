@@ -284,34 +284,21 @@ class Db
     public function initStructure($module='')
     {
         $path = '..'.DIRECTORY_SEPARATOR.'model';
-        /**
-         * 拼接模块路径
-         */
+        #拼接模块路径
         if($module !=''){ $path = $path.DIRECTORY_SEPARATOR.$module;}
         $pathData=[];
         $this->getFilePathData($path,$pathData,'Model.php');
         # 获取 vendor 目录下符合规范的包
         $vendorData = [];
-        $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$vendorData,'path.ini',$primary=3);
-        foreach ($vendorData as $key=>$value)
-        {
-            $namespace = file_get_contents($value);
-            $this->getFilePathData(rtrim($value, DIRECTORY_SEPARATOR."path.ini"),$pathData,'Model.php');
-        }
+        $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$pathData,'Model.php','namespaceModelPath.ini');
         foreach($pathData as &$value){
-            /**
-             * 清除../   替换  /  \  .php
-             */
-            $value = str_replace('.php','',str_replace(DIRECTORY_SEPARATOR,"\\",str_replace('..'.DIRECTORY_SEPARATOR,'',$value)));
-            /**
-             * 实例化
-             */
+            # 清除../   替换  /  \  .php
+            $value = str_replace('.php','',str_replace('/',"\\",str_replace('..'.DIRECTORY_SEPARATOR,'',$value)));
+            # 实例化
             $modelObject = $value::table();
             $modelObject->CreateATableThatDoesNotExist();
         }
-        /**
-         * 开始初始化
-         */
+        # 开始初始化
         return [];
     }
 
@@ -2310,34 +2297,65 @@ class Db
      * @param $dir
      * @param $fileData
      */
-    public function getFilePathData($dir,&$fileData,$suffix='.php',$primary=50,&$i=0)
+    public function getFilePathData($dir,&$fileData,string $suffix='.php',string $approve='')
     {
-        /**
-         * 打开应用目录
-         * 获取所有文件路径
-         */
+        # 判断是否是目录
         if (is_dir($dir)){
-            if ($dh = opendir($dir)){
-                while (($file = readdir($dh)) !== false){
-                    if($file != '.' && $file != '..'){
-                        /**
-                         * 判断是否是目录
-                         */
-                        if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
-                            $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$primary,$i);
-                            // echo "目录:" . $file . "<br>";
-                        }else{
-                            /**
-                             * 判断是否是php文件
-                             */
-                            if(strrchr($file,$suffix) == $suffix){
-                                $fileData[] = $dir.DIRECTORY_SEPARATOR.$file;
+            #  是否是vendor包模式
+            if ($approve !=='') {
+                $exist = false;
+                if ($dh = opendir($dir)){
+                    while (($file = readdir($dh)) !== false){
+                        if($file != '.' && $file != '..'){
+                            # 判断是否是目录
+                            if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
+                                $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve);
+                            }else{
+                                # 判断是否是php文件
+                                if($file== $approve){
+                                    $exist = true;
+                                }
                             }
-                            //                            echo "文件:" . $file . "<br>";
                         }
                     }
+                    closedir($dh);
                 }
-                closedir($dh);
+                # 有$exist
+                if ($exist){
+                    if ($dh = opendir($dir)){
+                        while (($file = readdir($dh)) !== false){
+                            if($file != '.' && $file != '..'){
+                                # 判断是否是目录
+                                if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
+                                    $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve);
+                                }else{
+                                    # 判断是否是php文件
+                                    if(strrchr($file,$suffix) == $suffix){
+                                        $fileData[] = str_replace('/src','',str_replace('..'.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR,'../',$dir.DIRECTORY_SEPARATOR.$file));
+                                    }
+                                }
+                            }
+                        }
+                        closedir($dh);
+                    }
+                }
+            }else{
+                if ($dh = opendir($dir)){
+                    while (($file = readdir($dh)) !== false){
+                        if($file != '.' && $file != '..'){
+                            # 判断是否是目录
+                            if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
+                                $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve);
+                            }else{
+                                # 判断是否是php文件
+                                if(strrchr($file,$suffix) == $suffix){
+                                    $fileData[] = $dir.DIRECTORY_SEPARATOR.$file;
+                                }
+                            }
+                        }
+                    }
+                    closedir($dh);
+                }
             }
         }
     }
