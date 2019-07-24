@@ -5,7 +5,7 @@
  * Model::table()->spliceWhere();
  */
 namespace pizepei\model\db;
-use pizepei\func\Func;
+use pizepei\staging\App;
 use pizepei\model\cache\Cache;
 use pizepei\staging\MyException;
 
@@ -289,7 +289,15 @@ class Db
          */
         if($module !=''){ $path = $path.DIRECTORY_SEPARATOR.$module;}
         $pathData=[];
-        $this->getFilePathData($path,$pathData);
+        $this->getFilePathData($path,$pathData,'Model.php');
+        # 获取 vendor 目录下符合规范的包
+        $vendorData = [];
+        $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$vendorData,'path.ini',$primary=3);
+        foreach ($vendorData as $key=>$value)
+        {
+            $namespace = file_get_contents($value);
+            $this->getFilePathData(rtrim($value, DIRECTORY_SEPARATOR."path.ini"),$pathData,'Model.php');
+        }
         foreach($pathData as &$value){
             /**
              * 清除../   替换  /  \  .php
@@ -313,7 +321,7 @@ class Db
      * @param bool $type
      * @throws \Exception
      */
-    protected function Exception($e,$type=false)
+    protected function Exception(\PDOException $e,$type=false)
     {
         /**
          * 判断是否存在事务
@@ -331,7 +339,6 @@ class Db
                 $this->CreateATableThatDoesNotExist();
             }
         }
-
         /**
          * 字段不对
          */
@@ -343,7 +350,17 @@ class Db
         /**
          * 使用
          */
-        new MyException('./',$e,self::ERROR_CODE);
+        if (class_exists('pizepei\staging\App')){
+            if(App::init()->MyException()){
+                App::init()->MyException()->PDO_exception_handler($e);
+            }
+        }else{
+
+            exit($e->getMessage().'['.$e->getCode().']');
+        }
+//        throw new MyException();
+//        PDO_exception_handler
+//        new MyException('./',$e,self::ERROR_CODE);
     }
 
     /**
@@ -658,18 +675,27 @@ class Db
             /**
              * 建议支持参数绑定
              */
-            if(__PATTERN__ == 'CLI'){
-                if(__CLI__SQL_LOG__ == 'true' ){
+            if (class_exists('pizepei\staging\App')){
+                if(\pizepei\staging\App::init()->__PATTERN__ == 'CLI'){
+                    if(\pizepei\staging\App::init()->__CLI__SQL_LOG__ == 'true' ){
+                        $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+                    }
+                }else{
                     $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
                 }
-            }else{
-                $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+            }else if (php_sapi_name() =='cli' ){
+                if($this->config['cliSqlLog']){
+                    $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+                }
+
             }
+
             $this->safetySql($sql);
 
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
+
             $this->Exception($e);
         }
     }
@@ -2284,7 +2310,7 @@ class Db
      * @param $dir
      * @param $fileData
      */
-    public function getFilePathData($dir,&$fileData)
+    public function getFilePathData($dir,&$fileData,$suffix='.php',$primary=50,&$i=0)
     {
         /**
          * 打开应用目录
@@ -2298,13 +2324,13 @@ class Db
                          * 判断是否是目录
                          */
                         if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
-                            $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData);
+                            $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$primary,$i);
                             // echo "目录:" . $file . "<br>";
                         }else{
                             /**
                              * 判断是否是php文件
                              */
-                            if(strrchr($file,'.php') == '.php'){
+                            if(strrchr($file,$suffix) == $suffix){
                                 $fileData[] = $dir.DIRECTORY_SEPARATOR.$file;
                             }
                             //                            echo "文件:" . $file . "<br>";
