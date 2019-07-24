@@ -278,10 +278,12 @@ class Db
      * 初始化表结构
      * 只适合model目录下以model命名空间开始的类
      * 建议在自动化部署时触发该方法
-     * @param string $module
+     * @param string $module 安全起见 只支持项目目录下model下的目录
+     * @param bool $composer 是否加载composer包只符合规范的模型
+     * @param string $iniName 可自定义包认证路径文件名称
      * @return array
      */
-    public function initStructure($module='')
+    public function initStructure(string $module='',bool $composer=false,string $iniName = 'namespaceModelPath.ini')
     {
         $path = '..'.DIRECTORY_SEPARATOR.'model';
         #拼接模块路径
@@ -289,8 +291,9 @@ class Db
         $pathData=[];
         $this->getFilePathData($path,$pathData,'Model.php');
         # 获取 vendor 目录下符合规范的包
-        $vendorData = [];
-        $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$pathData,'Model.php','namespaceModelPath.ini');
+        if ($composer){
+            $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$pathData,'Model.php',$iniName);
+        }
         foreach($pathData as &$value){
             # 清除../   替换  /  \  .php
             $value = str_replace('.php','',str_replace('/',"\\",str_replace('..'.DIRECTORY_SEPARATOR,'',$value)));
@@ -299,7 +302,7 @@ class Db
             $modelObject->CreateATableThatDoesNotExist();
         }
         # 开始初始化
-        return [];
+        return count($pathData);
     }
 
     /**
