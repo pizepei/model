@@ -213,10 +213,10 @@ class Db
              * 注意：
              *      格式为 ['表操作的字段','操作类型ADD、DROP、MODIFY、CHANGE','操作内容（为安全起见不包括alter table user）','修改说明','修改人']
              */
-            ['new1','ADD','alter table user add COLUMN new1 VARCHAR(20) DEFAULT NULL','修改说明：增加user表的new1字段','pizepei'],
-            ['new1','DROP','alter table user DROP COLUMN new2','修改说明：删除一个字段','pizepei'],
-            ['new1','MODIFY','alter table user MODIFY new1 VARCHAR(10)','修改说明：修改一个字段的类型','pizepei'],
-            ['new1','CHANGE','alter table user CHANGE new1 new4 int;','修改说明：修改一个字段的名称，此时一定要重新指定该字段的类型','pizepei'],
+            ['new1','ADD',' add COLUMN new1 VARCHAR(20) DEFAULT NULL','修改说明：增加user表的new1字段','pizepei'],
+            ['new1','DROP','  COLUMN new2','修改说明：删除一个字段','pizepei'],
+            ['new1','MODIFY',' new1 VARCHAR(10)','修改说明：修改一个字段的类型','pizepei'],
+            ['new1','CHANGE',' new1 new4 int;','修改说明：修改一个字段的名称，此时一定要重新指定该字段的类型','pizepei'],
         ],
         /**
          * 修改的内容必须是完整的否则好缺失部分原来的结构
@@ -364,6 +364,7 @@ class Db
          * 如果是空模型
          */
         if(isset($this->structure) && !empty($this->structure)){
+
             $this->setStructure();
             $this->showCreateTableCache();
         }
@@ -524,6 +525,7 @@ class Db
                     throw new \Exception('Create Table inexistence  '."[$this->table]");
                 }
                 $explode = explode('@',$result_table[0]['Create Table']);
+
                 $this->noe_table_version = (int)end($explode);
 
                 if($this->table_version != $this->noe_table_version){
@@ -582,6 +584,8 @@ class Db
         $TableAlterLog = TableAlterLogModel::table();
 
         $i = $this->noe_table_version+1;
+
+
         for($i;$i<=$this->table_version;$i++){
 
             if(isset($this->table_structure_log[$i]) && is_array($this->table_structure_log[$i])){
@@ -597,18 +601,12 @@ class Db
                     if(!isset($value[2])){
                         throw new \Exception("[$this->table] "."table_version-{$i}-操作内容 illegality");
                     }
-                    /**
-                     * 拼接sql
-                     */
+                    # 拼接sql
                     $noe_sql = $strSql;
                     $noe_sql .=self::ALTER_TABLE_STRUCTURE[$value[1]].$value[2];
-                    /**
-                     * 执行操作
-                     */
+                    # 执行修改操作
                     $result = $this->query($noe_sql);
-                    /**
-                     * 写入日志
-                     */
+                    # 写入操作日志 写入日志
                     $AlterLog = [
                         'table'=>$this->table,//操作表
                         'field'=>$value[0],//操作field
