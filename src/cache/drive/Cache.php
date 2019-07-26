@@ -24,6 +24,6 @@ interface  Cache
      * @param $config
      * @return mixed
      */
-    public static function get($key,$config);
+    public static function get($key,$config,bool $info);
 
 }

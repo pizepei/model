@@ -82,7 +82,6 @@ class Cache{
          * 判断缓存类型
          *  注意自动加载无法通过use 命名空间加载，只能拼接
          */
-
         $class = 'pizepei\model\cache\drive\\'.ucfirst(self::$config['driveType']);
         $class::$typeCache = $type;
         return $class::set(self::$key,self::$data,self::$period,self::$config);
@@ -94,7 +93,7 @@ class Cache{
      * @param string $type
      * @return mixed
      */
-    public static function get($key,$type='sys')
+    public static function get($key,$type='sys',$info=false)
     {
         /**
          * 获取缓存配置
@@ -109,7 +108,7 @@ class Cache{
         $class = 'pizepei\model\cache\drive\\'.ucfirst(self::$config['driveType']);
         $class::$typeCache = $type;
 
-        return $class::get(self::$key,self::$config);
+        return $class::get(self::$key,self::$config,$info);
     }
     /**
      * 清空数据

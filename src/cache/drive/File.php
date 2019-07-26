@@ -93,6 +93,7 @@ class File implements  Cache
         /**
          * 判断是否分组
          */
+        static::$group = 'public';
         if(is_array($key) && count($key) == 2){
             static::$group = $key[0];
             static::$key = $key[1];
@@ -110,7 +111,7 @@ class File implements  Cache
         /**
          * 文件名称
          */
-        static::$fileName = static::$group.'_'.static::$md5key.static::$extension;
+        static::$fileName = static::$group.':'.static::$md5key.static::$extension;
         /**
          * 完整路径+文件名称
          */
@@ -137,6 +138,7 @@ class File implements  Cache
         /**
          * 判断是否分组
          */
+        static::$group = 'public';
         if(is_array($key) && count($key) == 2){
             static::$group = $key[0];
             static::$key = $key[1];
@@ -147,10 +149,11 @@ class File implements  Cache
          * md5
          */
         static::$md5key =  md5(static::$key );
+
         /**
          * 文件名称
          */
-        static::$fileName = static::$group.'_'.static::$md5key.static::$extension;
+        static::$fileName = static::$group.':'.static::$md5key.static::$extension;
         /**
          * 完整路径+文件名称
          */
@@ -164,6 +167,7 @@ class File implements  Cache
      * 设置缓存
      */
     public static function set($key,$data,$period,$config){
+
         static::initSet($key,$data,$period,$config);
         /**
          * 判断是删除缓存还是设置缓存
@@ -195,9 +199,11 @@ class File implements  Cache
      * @param $config 配置
      * @return bool
      */
-    public static function get($key,$config)
+    public static function get($key,$config,$info=false)
     {
+
         static::initGet($key,$config);
+
         if(file_exists(static::$path )){
             /**
              * 获取数据
@@ -205,7 +211,12 @@ class File implements  Cache
             static:: $data = unserialize(file_get_contents(static::$path));
 
             if(static:: $data['period'] >time() || static:: $data['period']==0 ){
-                $data = static:: $data['data'];
+
+                if ($info){
+                    $data  = static:: $data;
+                }else{
+                    $data = static:: $data['data'];
+                }
                 /**
                  * 清除 static  信息
                  * 防止数据错误

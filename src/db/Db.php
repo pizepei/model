@@ -1035,15 +1035,8 @@ class Db
     public function get($id)
     {
         /**
-         * 通过id主键查询
+         *  通过id主键查询 获取主键信息 主键 PRI   唯一 UNI   普通 MUL
          */
-        /**
-         * 获取主键信息
-         */
-        /**
-         * 主键 PRI   唯一 UNI   普通 MUL
-         */
-
         if(empty($this->INDEX_PRI)){
             throw new \Exception('主键不存在（表结构中没有）');
         }
@@ -1208,8 +1201,6 @@ class Db
              * 保存历史sql数据
              * 获取完整的sql$this->replace();
              */
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
-
             /**
              * 查询缓存
              * 如果有缓存就使用
@@ -1217,19 +1208,20 @@ class Db
             if($this->cacheStatus){
                 $cacheData = $this->getCache();
                 if($cacheData){
+                    $this->cachePeriod = $cacheData['period'];
+                    $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
                     $this->eliminateSql();
-                    return $cacheData;
+                    return $cacheData['data'];
                 }
             }
+            $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace(['cacheStatus'=>false,'cachePeriod'=>time()+$this->cachePeriod]);
             /**
              * 准备sql
              */
-
             $sql = $this->instance->prepare($this->sql);
             /**
              * 历史sql
              */
-            //$this->sqlLog[] = $this->sql;
             /**
              * 绑定变量
              */
@@ -1241,7 +1233,6 @@ class Db
             $this->variableLog[] = $this->execute_bindValue;
 
             if($create){
-
                 if($all){
                     $data = $sql->fetchAll(); //获取所有
                 }else{
@@ -1258,18 +1249,15 @@ class Db
                 $this->eliminateSql();
                 throw new \Exception('查询错误sql错误');
             }
-            //清除sql影响
+            # 清除sql影响
             $this->eliminateSql();
-            /**
-             * 统计提交
-             */
+            # 统计提交
             return $data;
         } catch (\PDOException $e) {
             $this->Exception($e);
         }
     }
     protected $lastInsertId = [];
-
     /**
      * 删除、更新插入 构造器
      * @param bool $type
@@ -1280,23 +1268,12 @@ class Db
     {
         try {
             $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
-            /**
-             * 准备sql
-             */
-//            var_dump($GLOBALS['DBTABASE']['sqlLog'][$this->table]);
+            # 准备sql
             $sql = $this->instance->prepare($this->sql);
-            /**
-             * 绑定变量
-             */
+            # 绑定变量
             $create = $sql->execute($this->execute_bindValue);
-
-            /**
-             * 历史变量
-             * @var array
-             */
-            //var_dump($this->execute_bindValue);
+            # 历史变量
             $this->variableLog[] = $this->execute_bindValue;
-
             $lastInsertId = $this->lastInsertId;
             //清除sql影响
             $this->eliminateSql();
@@ -1327,11 +1304,9 @@ class Db
                             }else{
                                 $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}` FROM `".static::$alterConfig['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
                             }
-
                             return $this->inversion($this->INDEX_PRI,$this->query($lastInsertIdSql),true);
                         }
                     }
-
                     //var_dump($sql->fetch());
                     //获取最后一个插入数据的ID值
                     return $this->instance->lastInsertId($this->INDEX_PRI);
@@ -1356,6 +1331,7 @@ class Db
         $this->wheresql = '';
         $this->field = $this->fieldSrr;
         $this->cacheStatus = false;
+        $this->cachePeriod = 0;
         //清空value
         $this->execute_bindValue =[];
         /**
@@ -1436,7 +1412,6 @@ class Db
                  */
                 /**
                  * 判断是否是array
-                 *
                  */
                 if(is_array($v)){
                     $judgeUnknownStr = '';
@@ -1462,18 +1437,15 @@ class Db
                          * 非in  表达式查询
                          */
                         $expression = array_search(strtoupper($judgeUnknown),$this->expression);//在数组中搜索键值 ""，并返回它的键名：
-
                         if($expression == false){
                             /**
                              * 如果不在列表中
                              *
                              */
                             $judgeUnknownARR []="  {$k} {$judgeUnknown}  :{$k}{$judgeUnknown} ";
-
                         }else{
                             $judgeUnknownARR []="  {$k} {$expression}  :{$k}{$judgeUnknown} ";
                         }
-
                         /**
                          * 准备数据
                          */
@@ -1485,8 +1457,6 @@ class Db
                      * 不是默认 =
                      */
                     $judgeAndARR[] =" {$k} = :{$k} ";
-
-
                     $this->execute_bindValue[':'.$k] = $v;
 
                 }
@@ -1494,7 +1464,6 @@ class Db
         }
 
         $SQL = ' ';
-
         /**
          * 拼接
          */
@@ -1502,18 +1471,13 @@ class Db
          * or
          */
         if(isset($judgeorstr)){
-
             foreach ($judgeorstr as $sqlor){
-
                 $SQL .= ' ( '.$sqlor.') AND';
-
             }
         }
-
         /**
          * f  = 条件
          */
-
         if(isset($judgeUnknownARR)){
 
             foreach ($judgeUnknownARR as $sqjudge){
@@ -1522,11 +1486,9 @@ class Db
             }
 
         }
-
         /**
          * =
          */
-
         if(isset($judgeAndARR)){
 
             foreach ($judgeAndARR as $sqjAnd){
@@ -1576,24 +1538,14 @@ class Db
     public function insert($data,$safety = true){
 
         $this->insertSafety = $safety;
-//        /**
-//         * 判断是批量还是一条
-//         */
+        # 判断是批量还是一条
         if(!isset($data[1])){
-            /**
-             * 一条
-             */
+            # 一条
             $data = [$data];
         }
-        //var_dump($data);
-        /**
-         * 过滤字段
-         */
+        # 过滤字段
         $this->filtrationField($data);
-        /**
-         * 判断是否是更新
-         * 或者是插入
-         */
+        # 判断是否是更新或者是插入
         return $this->ifPudate($data);
     }
 
@@ -1621,7 +1573,6 @@ class Db
                     /**
                      * 删除
                      */
-                    var_dump($kk,$v[$kk]);
                     unset($data[$k][$kk]);
                 }
             }
@@ -1636,7 +1587,6 @@ class Db
      * @param $Field 需要查询的字段  字符串时是独立查询（字符串独立查询返回true 或者false）数组批量查询会自动unset()过滤非法的字段
      * @title  路由标题
      * @explain 路由功能说明
-
      */
     public function filtrationSelectField(&$Field)
     {
@@ -2085,7 +2035,7 @@ class Db
      */
     protected $cacheStatus = false;
     /**
-     * 缓存有效期
+     * 缓存有效期 在完成操作时是当前缓存的有效期时间戳
      * @var int
      */
     protected $cachePeriod = 0;
@@ -2123,17 +2073,14 @@ class Db
          */
         $cacheKey = $this->cacheKey;
         if(is_array($this->cacheKey) && count($this->cacheKey) == 2){
-
-            $cacheKey[1] = $cacheKey[1].'_'.md5($this->replace()['Sql']);
-
+            $cacheKey[1] = $cacheKey[1].':'.md5($this->replace()['Sql']);
         }else if (is_array($cacheKey) && count($cacheKey) != 2){
-
             throw new \Exception('cacheKey数组必须是2个值');
-
         }else{
-            $cacheKey = $cacheKey.'_'.md5($this->replace()['Sql']);
+            $cacheKey = $cacheKey.':'.md5($this->replace()['Sql']);
         }
-        $data = Cache::get($cacheKey,'db');
+
+        $data = Cache::get($cacheKey,'db',true);
         return  $data;
     }
 
@@ -2145,27 +2092,35 @@ class Db
     {
         $cacheKey = $this->cacheKey;
         if(is_array($cacheKey) && count($cacheKey) == 2){
-
-            $cacheKey[1] = $cacheKey[1].'_'.md5($this->replace()['Sql']);
-
+            $cacheKey[1] = $cacheKey[1].':'.md5($this->replace()['Sql']);
         }else if (is_array($cacheKey) && count($cacheKey) != 2){
             throw new \Exception('cacheKey数组必须是2个值');
         }else{
-            $cacheKey = $cacheKey.'_'.md5($this->replace()['Sql']);
+            $cacheKey = $cacheKey.':'.md5($this->replace()['Sql']);
         }
         return Cache::set($cacheKey,$data,$this->cachePeriod,'db');
     }
 
     /**
-     * 完整sql
+     * @Author 皮泽培
+     * @Created 2019/7/26 17:00
+     * @param array $data
+     * @title  完整sql
+     * @explain 完整sql
+     * @return array
+     * @throws \Exception
      */
-    protected function replace()
+    protected function replace(array $data = [])
     {
         $sql = $this->sql;
         foreach ($this->execute_bindValue as $k=>$v){
             $sql = str_replace($k,'`'.$v.'`',$sql);
         }
-        $this->sqlLog = ['Sql'=>$sql,'Cache'=>$this->cacheStatus];
+        if (isset($data['cacheStatus']) && isset($data['cacheStatus'])){
+            $this->sqlLog = ['Sql'=>$sql,'Cache'=>$data['cacheStatus'],'CachePeriod'=>date('Y-m-d H:i:s',$data['cachePeriod'])];
+        }else{
+            $this->sqlLog = ['Sql'=>$sql,'Cache'=>$this->cacheStatus,'CachePeriod'=>$this->cachePeriod == 0?'perpetual':date('Y-m-d H:i:s',$this->cachePeriod)];
+        }
         return $this->sqlLog;
     }
 

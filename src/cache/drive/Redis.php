@@ -84,7 +84,7 @@ class Redis implements  Cache
             /**
              * 删除缓存
              */
-            $returnData = static::$Redis->del('cache_'.static::$typeCache.'_'.static::$group.'_'.static::$md5key);
+            $returnData = static::$Redis->del('cache:'.static::$typeCache.':'.static::$group.':'.static::$md5key);
         }else{
             /**
              * 设置缓存  准备数据
@@ -93,9 +93,9 @@ class Redis implements  Cache
             /**
              * $typeCache  缓存类型  拼接  分组   =  表名称
              */
-            $returnData = static::$Redis->set('cache_'.static::$typeCache.'_'.static::$group.'_'.static::$md5key,static::$data);
+            $returnData = static::$Redis->set('cache:'.static::$typeCache.':'.static::$group.':'.static::$md5key,static::$data);
             if($period !=0){
-                $returnData = static::$Redis->expire('cache_'.static::$typeCache.'_'.static::$group.'_'.static::$md5key,$period);
+                $returnData = static::$Redis->expire('cache:'.static::$typeCache.':'.static::$group.':'.static::$md5key,$period);
             }
         }
         static ::staticEmpty();
@@ -107,7 +107,7 @@ class Redis implements  Cache
      * @param $config
      * @return mixed
      */
-    public static function get($key,$config)
+    public static function get($key,$config,$info=false)
     {
         static::initRedis();
         /**
@@ -119,7 +119,7 @@ class Redis implements  Cache
             static::$key = $key[1];
         }
         static::$md5key =  md5(static::$key );
-        $returnData = unserialize(static::$Redis->get('cache_'.static::$typeCache.'_'.static::$group.'_'.static::$md5key));
+        $returnData = unserialize(static::$Redis->get('cache:'.static::$typeCache.':'.static::$group.':'.static::$md5key));
         static::staticEmpty();
         return $returnData;
 
@@ -159,7 +159,7 @@ class Redis implements  Cache
             static::$key = $key[1];
         }
         static::$md5key =  md5(static::$key );
-        $returnData = static::$Redis->ttl('cache_'.static::$typeCache.'_'.static::$group.'_'.static::$md5key);
+        $returnData = static::$Redis->ttl('cache:'.static::$typeCache.':'.static::$group.':'.static::$md5key);
         static::staticEmpty();
         return $returnData;
     }
