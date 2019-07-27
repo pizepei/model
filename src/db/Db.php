@@ -247,30 +247,33 @@ class Db
      */
     protected $ClassName = '';
 
+    protected $Config = '';
     /**
      * Db constructor.
      * @param $instance
      * @param $table
      * @throws \Exception
      */
-    public function __construct($instance,$table)
+    public function __construct($instance,$table,$alterConfig)
     {
         $this->table = $table;
         $this->instance = $instance;
-
+        $this->Config = $alterConfig;
         $ClassName =explode('\\', get_called_class() );
         $this->ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
-        /**
-         * 判断表是否存在
-         */
-        if(static::$alterConfig['initTablePattern']){
-            $this->setStructure();
+        if ($this->Config['type'] == 'mysql'){
+            /**
+             * 判断表是否存在
+             */
+            if(static::$alterConfig['initTablePattern']){
+                $this->setStructure();
+            }
+            /**
+             * 初始化表数据（缓存）
+             */
+            $this->showCreateTableCache();
         }
 
-        /**
-         * 初始化表数据（缓存）
-         */
-        $this->showCreateTableCache();
 
     }
 
@@ -650,6 +653,25 @@ class Db
         }
     }
 
+
+
+    /**
+     * sqlSrv原生sql
+     * @param $sql
+     * @return mixed
+     * @throws \Exception
+     */
+    public function sqlSrvQuery($sql)
+    {
+        try {
+            $this->safetySql($sql);
+            $result = $this->instance->query($sql); //返回一个PDOStatement对象
+            return $result = $result?$result->fetchAll(\PDO::FETCH_ASSOC):FALSE; //获取所有
+        } catch (\PDOException $e) {
+            $this->Exception($e);
+        }
+    }
+
     /**
      * 原生sql
      *
@@ -677,10 +699,9 @@ class Db
                 }
 
             }
-
             $this->safetySql($sql);
-
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
+
             return $result = $result->fetchAll(\PDO::FETCH_ASSOC); //获取所有
         } catch (\PDOException $e) {
 
@@ -711,6 +732,79 @@ class Db
         }
 
 
+    }
+    public static function sqlSrv($table ='',$Config,$prefix=true)
+    {
+        /**
+         * 合并配置
+         * 连接数据库
+         */
+        static::$alterConfig = array_merge( \Dbtabase::DBTABASE,$Config);
+        /**
+         * 获取表名称
+         */
+        self::getTable($table,$prefix);
+        /**
+         * type 数据库类型
+         * host 数据库主机名
+         * dbname 使用的数据库
+         * charset 数据库编码
+         * hostport 数据库连接端口
+         *
+         * 注意   ：  host前面是 : [冒号] 其他参数前面是 ; [分号]  所以参数之间 = 之间不能有空格
+         */
+//        self::$dsn = new \PDO("sqlsrv:Server=120.78.163.47,1433;Database=ppz","sa","powerthink@123");
+//        self::$dsn = static::$alterConfig['type'].':host='.static::$alterConfig['hostname'].';port='.static::$alterConfig['hostport'].';dbname='.static::$alterConfig['database'].';charset='.static::$alterConfig['charset'];
+
+        self::$dsn = static::$alterConfig['type'].':Server='.static::$alterConfig['hostname'].';Database='.static::$alterConfig['database'];
+        /************************资源重复利用*******************************************/
+        /**
+         * 判断是否重复使用对象
+         */
+        if(static::$alterConfig['setObjectPattern']){
+            /**
+             * 重复使用
+             *      判断对象是否存在 存在返回
+             */
+            if(isset(self::$staticObject[self::$dsn . self::$altertabl])){
+
+                return self::$staticObject[self::$dsn . self::$altertabl];
+            }
+        }else{
+            //不使用
+            /**
+             * 判断是否已经存在pdo连接  存在返回对象
+             */
+            if(isset(self::$alterInstance[self::$dsn])){
+                /**
+                 * 实例化模型类
+                 *      传如连接标识
+                 */
+                return new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
+            }
+        }
+        /**************************资源重复利用*****************************************/
+
+        try {
+            /**
+             * $dsn 连接信息
+             * username 数据库连接用户名
+             * password  对应的密码
+             * self::$alterParams 连接参数
+             **/
+            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, static::$alterConfig['username'], static::$alterConfig['password'],static::$alterConfig['params']); //初始化一个PDO对象
+
+//            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, "sa",'powerthink@123',[     \PDO::ATTR_STRINGIFY_FETCHES => false,
+//               \PDO::SQLSRV_ATTR_FETCHES_NUMERIC_TYPE => true]); //初始化一个PDO对象
+            /**
+             * 实例化模型类
+             *      传如连接标识
+             */
+            return self::setObjectPattern();
+
+        } catch (\PDOException $e) {
+            die ("Error!: " . $e->getMessage() . "<br/>");
+        }
     }
 
     /**
@@ -768,7 +862,7 @@ class Db
                  * 实例化模型类
                  *      传如连接标识
                  */
-                return new static(self::$alterInstance[self::$dsn],self::$altertabl);
+                return new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
             }
         }
         /**************************资源重复利用*****************************************/
@@ -797,8 +891,8 @@ class Db
      * @Author: pizepei
      * @Created: 2019/1/1 12:08
      *
-     * @param $table
-     * @param bool $prefix 是否使用表前缀
+     * @param $table  非db类下传如会添加到通过类名获取的表名后面
+     * @param bool $prefix 是否使用表前缀（只对db类下有用：）
      *
      * @title  获取表名称
      * @explain 一般是方法功能说明、逻辑说明、注意事项等。
@@ -881,12 +975,12 @@ class Db
             /**
              * 创建保存对象
              */
-            return self::$staticObject[self::$dsn.self::$altertabl] = new static(self::$alterInstance[self::$dsn],self::$altertabl);
+            return self::$staticObject[self::$dsn.self::$altertabl] = new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
         }else{
             /**
              * 不保存
              */
-            return new static(self::$alterInstance[self::$dsn],self::$altertabl);
+            return new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
         }
     }
 
@@ -1072,13 +1166,16 @@ class Db
         if (!empty($this->wheresql)){
             $this->sql .= ' WHERE '.$this->wheresql;
         }
-        $data = $this->constructorSend(false);
-
-        if (empty($data) || $this->ClassName =='db')
-        {
-           return $data;
+        if ($this->Config['type'] == 'mysql'){
+            $data = $this->constructorSend(false);
+            if (empty($data) || $this->ClassName =='db')
+            {
+                return $data;
+            }
+            return $this->fetchJsonTurnArray($data,false);
         }
-        return $this->fetchJsonTurnArray($data,false);
+        return $this->query($this->sql);
+
     }
 
     /**
@@ -1369,7 +1466,6 @@ class Db
             if(count($kk) >1) {
                 /**
                  * OR
-                 *
                  */
                 $orstr = '';
                 foreach ($kk as $ork=>$orv){
