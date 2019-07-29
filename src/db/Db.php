@@ -507,7 +507,7 @@ class Db
                  * 插入初始化数据
                  */
                 if(!empty($this->initData)){
-                    $this->insert($this->initData);
+                    $this->add($this->initData);
                 }
             }else{
                 /**
@@ -1639,8 +1639,10 @@ class Db
             # 一条
             $data = [$data];
         }
+
         # 过滤字段
         $this->filtrationField($data);
+
         # 判断是否是更新或者是插入
         return $this->ifPudate($data);
     }
@@ -1762,7 +1764,9 @@ class Db
          */
         if($this->ClassName !='db'){
             if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
-                $field .= '`'.$this->INDEX_PRI.'`,';
+                if (!isset($data[0][$this->INDEX_PRI])){
+                    $field .= '`'.$this->INDEX_PRI.'`,';
+                }
             }
         //DEFAULT
         }
@@ -1783,13 +1787,15 @@ class Db
              */
             if($this->ClassName !='db'){
                 if($this->structure[$this->INDEX_PRI]['TYPE'] == 'uuid'){
-                    $uuid = self::getUuid(true);
-                    $this->lastInsertId[] = $uuid;
-                    $arr = [$this->INDEX_PRI=>$uuid];
-                    $v = $arr+$v;
+                    if (!isset($v[$this->INDEX_PRI])){
+                        $uuid = self::getUuid(true);
+                        $this->lastInsertId[] = $uuid;
+                        $arr = [$this->INDEX_PRI=>$uuid];
+                        $v = $arr+$v;
+                    }
                 }
             }
-
+            $this->table_describe;
             foreach ($v as $kk=>$vv){
                 /**
                  * 如果是数组 先判断这个字段是否支持json 是就json_encode
