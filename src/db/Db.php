@@ -5,6 +5,7 @@
  * Model::table()->spliceWhere();
  */
 namespace pizepei\model\db;
+use pizepei\helper\Helper;
 use pizepei\staging\App;
 use pizepei\model\cache\Cache;
 use pizepei\staging\MyException;
@@ -2055,7 +2056,7 @@ class Db
         $this->filtrationField($data);
         $this->updateContent = '';
         foreach($data[0] as $key=>$value){
-            $this->execute_bindValue[':uc'.$key] = $value;
+            $this->execute_bindValue[':uc'.$key] = is_array($value)?Helper::init()->json_encode($value):$value;
             $this->updateContent .= ',`'.$key.'` = '.":uc".$key." ";
         }
         $this->updateContent = ltrim($this->updateContent,',');
@@ -2216,7 +2217,7 @@ class Db
     {
         $sql = $this->sql;
         foreach ($this->execute_bindValue as $k=>$v){
-            $sql = str_replace($k,'`'.$v.'`',$sql);
+            $sql = str_replace($k,'`'.(is_array($v)?Helper::init()->json_encode($v):$v).'`',$sql);
         }
         if (isset($data['cacheStatus']) && isset($data['cacheStatus'])){
             $this->sqlLog = ['Sql'=>$sql,'Cache'=>$data['cacheStatus'],'CachePeriod'=>date('Y-m-d H:i:s',$data['cachePeriod'])];
