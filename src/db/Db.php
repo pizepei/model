@@ -333,6 +333,26 @@ class Db
                 $this->CreateATableThatDoesNotExist();
             }
         }
+        switch ($e->getCode()) {
+            case '42S02': # 表不存在42S02
+                $this->CreateATableThatDoesNotExist();
+                break;
+            case '1054': # 字段不存在
+
+                break;
+            case '23000': # 违反唯一规则
+                $msg = str_replace('SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry \'','',$e->getMessage());
+                $msg = str_replace('\' for key \'',' 已经存在  ',$msg);
+                $msg = str_replace('\'','',$msg);
+                throw new \Exception($msg);
+                break;
+            default:
+
+        }
+        # 违反唯一规则
+        #SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '192.222.222.222' for key 'server_ip'
+
+
         /**
          * 字段不对
          */
@@ -2030,7 +2050,16 @@ class Db
         if(empty($this->wheresql)){
             throw new \Exception('查询错误sql错误');
         }
+        # 过滤id主键
+        /**
+         * 判断是否存在主键
+         * $this->INDEX_PRI
+         */
+        if(isset($data[$this->INDEX_PRI])){
+            unset($data[$this->INDEX_PRI]);
+        }
         $this->updateContent($data);
+
         $this->sql = 'UPDATE '.'`'.$this->table.'` SET  '.$this->updateContent.' WHERE '.$this->wheresql;
         return $this->constructorSendUpdate(true);
     }
