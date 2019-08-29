@@ -240,8 +240,11 @@ class Db
     const replace_field  =[
         '数据库值'=>'显示值',
     ];
-
-
+    /**
+     * groupBy
+     * @var string
+     */
+    protected $groupBysql = '';
     /**
      * 当前类名
      * @var string
@@ -1210,7 +1213,7 @@ class Db
         if(!empty($field)){
             $this->field($field);
         }
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql);
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql).$this->groupBysql;
         $data = $this->constructorSend();
         if (empty($data) || $this->ClassName =='db')
         {
@@ -1447,6 +1450,7 @@ class Db
         $this->sql = '';
         $this->sqlLog = [];
         $this->wheresql = '';
+        $this->groupBy = '';
         $this->field = $this->fieldSrr;
         $this->cacheStatus = false;
         $this->cachePeriod = 0;
@@ -1615,7 +1619,7 @@ class Db
         $SQL = rtrim($SQL,'AND');
         $this->wheresql = $SQL;
     }
-
+    const sql_keyword = ['explain'];
     /**
      * 设置需要查询的field
      * @param array $data
@@ -1629,12 +1633,16 @@ class Db
         $field = '';
         foreach ($data as $k=>$v){
             if(is_int($k)){
-                $field .= $v.', ';
+                if (in_array($v,self::sql_keyword)){
+                    $field .= '`'.$v.'`, ';
+                }else{
+                    $field .=  ' '.$v.', ';
+
+                }
             }else{
                 $field .= $k.' as '.$v.', ';
             }
         }
-
         $this->field = rtrim($field,', ');
         return $this;
     }
@@ -2571,7 +2579,30 @@ class Db
         //SELECT * FROM 表名 WHERE 字段名 IS NOT NULL AND 字段名 <> '';
     }
 
+    /**
+     * @Author 皮泽培
+     * @Created 2019/8/29 15:37
+     * @param $name
+     * @title  groupBy 安全起见只支持字段名称函数考虑其他方式
+     * @throws \Exception
+     * @router get
+     */
+    public function group(string $name,array$field=[])
+    {
 
+        $this->execute_bindValue[':groupBy'] = $name;
+        $this->groupBysql =  ' group by '.$name;
+        if(!empty($field)){
+            $this->field($field);
+        }
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql).$this->groupBysql;
+        $data = $this->query($this->sql);
+        if (empty($data) || $this->ClassName =='db')
+        {
+            return $data;
+        }
+        return $this->fetchJsonTurnArray($data,true);
+    }
 
     /**
      * 思考
