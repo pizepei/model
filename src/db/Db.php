@@ -241,6 +241,17 @@ class Db
         '数据库值'=>'显示值',
     ];
     /**
+     * 是否强制使用 index
+     * @var bool
+     */
+    protected $forceIndex = true;
+    /**
+     * 强制index sql
+     * @var string
+     */
+    protected $forceIndex_sql = '';
+
+    /**
      * groupBy
      * @var string
      */
@@ -272,13 +283,9 @@ class Db
             if(static::$alterConfig['initTablePattern']){
                 $this->setStructure();
             }
-            /**
-             * 初始化表数据（缓存）
-             */
+            # 初始化表数据（缓存）
             $this->showCreateTableCache();
         }
-
-
     }
 
     /**
@@ -320,9 +327,7 @@ class Db
      */
     protected function Exception(\PDOException $e,$type=false)
     {
-        /**
-         * 判断是否存在事务
-         */
+        # 判断是否存在事务
         if($this->inTransaction()){
             $this->rollBack();
         }
@@ -381,8 +386,7 @@ class Db
     }
 
     /**
-     * 如果表不存在
-     *      进行的操作
+     * 如果表不存在 进行的操作
      * @throws \Exception
      */
     public function CreateATableThatDoesNotExist()
@@ -391,18 +395,15 @@ class Db
          * 如果是空模型
          */
         if(isset($this->structure) && !empty($this->structure)){
-
             $this->setStructure();
             $this->showCreateTableCache();
         }
     }
-
     /**
      * @Author: pizepei
      * @Created: 2018/12/31 22:55
      * @title  设置表结构
      * @explain 判断表是否存在、创建表、判断表结构修改
-     *
      * @throws \Exception
      */
     protected function setStructure()
@@ -412,9 +413,6 @@ class Db
          * show databases like 'db_name';表
          * show tables like 'table_name';数据库
          */
-        //$result_table = $this->instance->query("show tables like '".$this->table."'"); //返回一个PDOStatement对象
-        //$result_table = $result_table->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-
         /**
          * 判断是否是db类
          */
@@ -432,13 +430,7 @@ class Db
             $result_table = $this->query("SELECT table_name FROM information_schema.TABLES WHERE table_name ='{$this->table}'"); //返回一个PDOStatement对象
 
             if(empty($result_table)){
-                /**
-                 * 表不存在
-                 * 拼接创建sql
-                 */
-                /**
-                 * 创建表
-                 */
+                # 表不存在拼接创建sql 创建表
                 $createTablrSql = "CREATE TABLE `".$this->table."`(";
                 foreach($this->structure as $key=>$value){
                     if($key != 'PRIMARY' && $key != 'INDEX'){
@@ -446,10 +438,8 @@ class Db
                         if($value['AUTO_INCREMENT']){
                             $value['AUTO_INCREMENT'] = 'AUTO_INCREMENT';
                         }
-
-
                         if($value['TYPE'] == 'json'){
-                            if(static::$alterConfig['versions'] < 5.7){
+                            if($this->Config['versions'] < 5.7){
                                 $value['TYPE'] = 'text';
                             }
                             $value['NULL'] = $value['NULL']??'';//由于text和json在严格模式下是不允许有默认值的，这样在add操作时如果没有就会提示错误，设置成可 NULL 避免麻烦
@@ -459,22 +449,14 @@ class Db
                                 $value['DEFAULT'] = self::UUID_ZERO;
                             }
                         }
-
                         $value['NULL'] = $value['NULL']??' NOT NULL ';
-
-                        /**
-                         * 处理默认值
-                         */
+                        # 处理默认值
                         $value['DEFAULT'] = isset($value['DEFAULT'])?$value['DEFAULT']:false;
-
                         if($value['DEFAULT'] === false){
                             $value['DEFAULT'] = '';
                         }else if($value['DEFAULT'] == '' || !empty($value['DEFAULT']) || $value['DEFAULT'] === 0){
-
-
                             $value['DEFAULT'] = " DEFAULT '".$value['DEFAULT']."' ";
                         }
-
                         $createTablrSql .='`'.$key.'` '.$value['TYPE'].$value['NULL'].$value['AUTO_INCREMENT'].' '.$value['DEFAULT']." COMMENT '".$value['COMMENT']."',".PHP_EOL;
                     }
                 }
@@ -514,7 +496,7 @@ class Db
                 $AlterLog = [
                     'table'=>$this->table,//操作表
                     'field'=>'',//操作field
-                    'database'=>static::$alterConfig['database'],//数据库
+                    'database'=>$this->Config['database'],//数据库
                     'dsn'=>self::$dsn,//连接
                     'type'=>'ADD-TABLE',//操作类型
                     'operator'=>'system',//操作人
@@ -557,9 +539,7 @@ class Db
 
                 if($this->table_version != $this->noe_table_version){
                     $this->versionUpdate();
-                    /**
-                     * 清空缓存完整的表结构
-                     */
+                    # 清空缓存完整的表结构
                     $this->emptyStructureCache(true);
                 }
                 //echo '版本号一致';
@@ -637,7 +617,7 @@ class Db
                     $AlterLog = [
                         'table'=>$this->table,//操作表
                         'field'=>$value[0],//操作field
-                        'database'=>static::$alterConfig['database'],//数据库
+                        'database'=>$this->Config['database'],//数据库
                         'dsn'=>self::$dsn,//连接
                         'type'=>$value[1],//操作类型
                         'operator'=>$value[4],//操作人
@@ -667,11 +647,11 @@ class Db
      */
     protected function emptyStructureCache($type =false)
     {
-        Cache::set(['table_create',$this->table],null,0,'db');
-        Cache::set(['table_index',$this->table],null,0,'db');
-        Cache::set(['table_describe_index',$this->table],null,0,'db');
-        Cache::set(['table_describe',$this->table],null,0,'db');
-        Cache::set(['table_describe_FieldStr',$this->table],null,0,'db');
+        Cache::set(['table_create',$this->table],null,$this->Config['cachePeriod'],'db');
+        Cache::set(['table_index',$this->table],null,$this->Config['cachePeriod'],'db');
+        Cache::set(['table_describe_index',$this->table],null,$this->Config['cachePeriod'],'db');
+        Cache::set(['table_describe',$this->table],null,$this->Config['cachePeriod'],'db');
+        Cache::set(['table_describe_FieldStr',$this->table],null,$this->Config['cachePeriod'],'db');
         if($type){
             $this->showCreateTableCache();
         }
@@ -712,16 +692,15 @@ class Db
             if (class_exists('pizepei\staging\App')){
                 if(\pizepei\staging\App::init()->__PATTERN__ == 'CLI'){
                     if(\pizepei\staging\App::init()->__CLI__SQL_LOG__ == 'true' ){
-                        $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+                        self::$DBTABASE['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
                     }
                 }else{
-                    $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+                    self::$DBTABASE['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
                 }
             }else if (php_sapi_name() =='cli' ){
-                if($this->config['cliSqlLog']){
-                    $GLOBALS['DBTABASE']['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
+                if($this->Config['cliSqlLog']){
+                    self::$DBTABASE['sqlLog'][$this->table.'[query]'][] = $sql;//记录sqlLog
                 }
-
             }
             $this->safetySql($sql);
             $result = $this->instance->query($sql); //返回一个PDOStatement对象
@@ -746,8 +725,7 @@ class Db
      */
     protected function safetySql($dql)
     {
-
-        foreach(static::$alterConfig['safety']['del'] as $key=>$value)
+        foreach($this->Config['safety']['del'] as $key=>$value)
         {
             preg_match($value[0],$dql,$result);
             if(!empty($result)){
@@ -817,9 +795,6 @@ class Db
              * self::$alterParams 连接参数
              **/
             self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, static::$alterConfig['username'], static::$alterConfig['password'],static::$alterConfig['params']); //初始化一个PDO对象
-
-//            self::$alterInstance[self::$dsn] = new \PDO(self::$dsn, "sa",'powerthink@123',[     \PDO::ATTR_STRINGIFY_FETCHES => false,
-//               \PDO::SQLSRV_ATTR_FETCHES_NUMERIC_TYPE => true]); //初始化一个PDO对象
             /**
              * 实例化模型类
              *      传如连接标识
@@ -843,15 +818,10 @@ class Db
      */
     public static function table($table ='',$prefix=true)
     {
-
-        /**
-         * 合并配置
-         * 连接数据库
-         */
+        # 合并配置 连接数据库
+        # 考虑到是容器微服务结构下，就不支持链接多数据库配置，直接通过在不同容器下数据库配置不一样解决
         static::$alterConfig = array_merge( \Dbtabase::DBTABASE,static::$alterConfig);
-        /**
-         * 获取表名称
-         */
+        # 获取表名称
         self::getTable($table,$prefix);
         /**
          * type 数据库类型
@@ -878,14 +848,9 @@ class Db
             }
         }else{
             //不使用
-            /**
-             * 判断是否已经存在pdo连接  存在返回对象
-             */
+            # 判断是否已经存在pdo连接  存在返回对象
             if(isset(self::$alterInstance[self::$dsn])){
-                /**
-                 * 实例化模型类
-                 *      传如连接标识
-                 */
+                # 实例化模型类  传如连接标识
                 return new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
             }
         }
@@ -991,47 +956,33 @@ class Db
      * @throws \Exception
      */
     private  static function setObjectPattern()
-    {
-        /**
-         * 判断返回类型
-         */
+    {    # 判断返回类型
         if(static::$alterConfig['setObjectPattern']){
-            /**
-             * 创建保存对象
-             */
+            # 创建保存对象
             return self::$staticObject[self::$dsn.self::$altertabl] = new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
         }else{
-            /**
-             * 不保存
-             */
+            # 不保存
             return new static(self::$alterInstance[self::$dsn],self::$altertabl,static::$alterConfig);
         }
     }
 
     /**
-     * 获取表结构
-     * 缓存表结构
+     * @Author 皮泽培
+     * @Created 2019/8/30 15:40
+     * @title  获取表结构->缓存表结构
+     * @explain 路由功能说明
+     * @throws \Exception
      */
     protected function showCreateTableCache()
     {
-        /**
-         * 缓存完整的表结构
-         */
+        # 缓存完整的表结构
         $this->table_create = Cache::get(['table_create',$this->table],'db');
 
-
         if(!$this->table_create){
-            /**
-             * 获取完整的表结构
-             */
-            //$create = $this->instance->query('show create table '.$this->table); //返回一个PDOStatement对象
-            //$this->table_create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-
+            # 获取完整的表结构
             $this->table_create = $this->query('show create table '.$this->table); //返回一个PDOStatement对象
-            /**
-             * 缓存cachePeriod
-             */
-            Cache::set(['table_create',$this->table],$this->table_create,static::$alterConfig['cachePeriod']??0,'db');
+            # 缓存cachePeriod
+            Cache::set(['table_create',$this->table],$this->table_create,$rhis->config['cachePeriod']??0,'db');
         }
         /**
          * 查看索引         show index from table_name
@@ -1076,7 +1027,7 @@ class Db
          * 缓存完整的 索引
          */
         $this->table_index = Cache::get(['table_index',$this->table],'db');
-
+//        var_dump($this->table_index);
         if(!$this->table_index){
             /**
              * 获取完整的表索引
@@ -1084,8 +1035,14 @@ class Db
             $create = $this->query('show index from '.$this->table); //返回一个PDOStatement对象
             //$create = $this->instance->query('show index from '.$this->table); //返回一个PDOStatement对象
             //$create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
-
-            $this->table_index = $create;
+            if (empty($create)){
+                throw new \Exception('error show index from');
+            }
+            $createArr = [];
+            foreach ($create as $value){
+                $createArr[$value['Column_name']][] = $value;
+            }
+            $this->table_index = $createArr;
             /**
              * 缓存
              */
@@ -1186,7 +1143,14 @@ class Db
         if(!empty($field)){
             $this->field($field);
         }
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'`';
+        if ($this->forceIndex_sql !=='' && $this->forceIndex ===true){
+            # 没有关闭强制使用 index 同时没有使用forceIndex()方法手动定义强制内容
+            # 使用自动模式
+
+        }
+
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` '.($this->forceIndex_sql);
+
         if (!empty($this->wheresql)){
             $this->sql .= ' WHERE '.$this->wheresql;
         }
@@ -1214,6 +1178,7 @@ class Db
             $this->field($field);
         }
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql).$this->groupBysql;
+
         $data = $this->constructorSend();
         if (empty($data) || $this->ClassName =='db')
         {
@@ -1271,43 +1236,43 @@ class Db
         if (!$all)$data = $TurnArray[0];
         return $data;
     }
+
     /**
-     * 强制使用index
+     * @Author 皮泽培
+     * @Created 2019/8/30 11:29
+     * @param array $data 如果为空
+     * @title  强制使用index
+     * @return $this
+     * @throws \Exception
      */
-    public function forceIndex($data){
-        /**
-         * 判断是否是array
-         */
-        if(!is_array($data)){
-            /**
-             * 不是  变成array
-             */
-            $data = [$data];
+    public function forceIndex(array $data = []){
+        #判断是否是 []
+        if($data === []){
+            # 如果空使用自动判断
+            $this->forceIndex = false;
+            return $this;
         }
+
         $str = '';
-        /**
-         * 检查体段
-         */
+        # 检查字段 拼接sql
         foreach ($data as $k => $v){
-            /**
-             * 判断是否是index
-             */
-            if($this->table_describe_index[$v]){
-                /**
-                 * 判断是否是主键
-                 */
-                if($this->INDEX_PRI == $v){
+            # 判断是否是index
+            if($this->table_index[$v]){
+                # 判断是否是主键
+                if($this->INDEX_PRI == $v ){
                     $str .= 'PRI ,';
                 }else{
                     $str .= $v.' ,';
                 }
+            }else{
+                throw new \Exception( $v.' is not a INDEX');
             }
         }
         $str = rtrim($str,',');
         $this->forceIndex_sql = ' force index('.$str.')';
         return $this;
     }
-
+    public static $DBTABASE =[];
     /**
      * 查询构造器
      * @param bool $all
@@ -1319,10 +1284,6 @@ class Db
         //可以看到，两者的最后返回结果是不一样的，query 返回的是一个结果集，而execute 返回的是影响行数 或者 是插入数据的id ！~由此可以看出，query 拿来执行 select 更好一些，execute 哪里执行 update | insert | delete 更好些！~~
         try {
             /**
-             * 保存历史sql数据
-             * 获取完整的sql$this->replace();
-             */
-            /**
              * 查询缓存
              * 如果有缓存就使用
              */
@@ -1330,27 +1291,17 @@ class Db
                 $cacheData = $this->getCache();
                 if($cacheData){
                     $this->cachePeriod = $cacheData['period'];
-                    $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
+                    self::$DBTABASE['sqlLog'][$this->table][] = $this->replace();# 保存历史sql数据
                     $this->eliminateSql();
                     return $cacheData['data'];
                 }
             }
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace(['cacheStatus'=>false,'cachePeriod'=>time()+$this->cachePeriod]);
-            /**
-             * 准备sql
-             */
+            self::$DBTABASE['sqlLog'][$this->table][] = $this->replace(['cacheStatus'=>false,'cachePeriod'=>time()+$this->cachePeriod]);
+            # 准备sql
             $sql = $this->instance->prepare($this->sql);
-            /**
-             * 历史sql
-             */
-            /**
-             * 绑定变量
-             */
+            # 绑定变量
             $create = $sql->execute($this->execute_bindValue);
-            /**
-             * 历史变量
-             * @var array
-             */
+            # 历史变量
             $this->variableLog[] = $this->execute_bindValue;
 
             if($create){
@@ -1388,7 +1339,7 @@ class Db
     public function constructorSendUpdate($type = true)
     {
         try {
-            $GLOBALS['DBTABASE']['sqlLog'][$this->table][] = $this->replace();
+            self::$DBTABASE['sqlLog'][$this->table][] = $this->replace();
             # 准备sql
             $sql = $this->instance->prepare($this->sql);
             # 绑定变量
@@ -1421,9 +1372,9 @@ class Db
                              * database
                              */
                             if(isset($this->structure['update_time'])){//static::$alterConfig
-                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}`,`update_time` FROM `".static::$alterConfig['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
+                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}`,`update_time` FROM `".$this->Config['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
                             }else{
-                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}` FROM `".static::$alterConfig['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
+                                $lastInsertIdSql = "SELECT `{$this->INDEX_PRI}` FROM `".$this->Config['database']."`.`{$this->table}` WHERE {$this->INDEX_PRI}  IN( {$lastInsertId} )";
                             }
                             return $this->inversion($this->INDEX_PRI,$this->query($lastInsertIdSql),true);
                         }
@@ -1465,6 +1416,16 @@ class Db
          * 插入主键
          */
         $this->lastInsertId = [];
+        /**
+         * 是否强制使用（自动）
+         */
+        $this->forceIndex = true;
+        /**
+         * 强制index sql
+         * @var string
+         */
+        $this->forceIndex_sql = '';
+
     }
 
     /**
@@ -2184,14 +2145,18 @@ class Db
      * @var null
      */
     protected $cacheKey = null;
+
     /**
-     * 缓存操作
-     * 注意  ： 只有查询使用缓存，其他存在不使用缓存
+     * @Author 皮泽培
+     * @Created 2019/8/30 15:05
      * @param $key
-     * @param $cachePeriod
-     * @return mixed
+     * @title  缓存操作
+     * @explain 注意  ： 只有查询使用缓存，其他存在不使用缓存
+     * @return Db
+     * @throws \Exception
+     * @router get
      */
-    public function cache($key,$cachePeriod = 0)
+    public function cache($key,$cachePeriod = 0):self
     {
         /**
          * 设置缓存开启状态
@@ -2254,9 +2219,9 @@ class Db
     {
         $sql = $this->sql;
         foreach ($this->execute_bindValue as $k=>$v){
-            $sql = str_replace($k,'`'.(is_array($v)?Helper::init()->json_encode($v):$v).'`',$sql);
+            $sql = str_replace($k,"'".(is_array($v)?Helper::init()->json_encode($v):$v)."'",$sql);
         }
-        if (isset($data['cacheStatus']) && isset($data['cacheStatus'])){
+        if (isset($data['cacheStatus'])){
             $this->sqlLog = ['Sql'=>$sql,'Cache'=>$data['cacheStatus'],'CachePeriod'=>date('Y-m-d H:i:s',$data['cachePeriod'])];
         }else{
             $this->sqlLog = ['Sql'=>$sql,'Cache'=>$this->cacheStatus,'CachePeriod'=>$this->cachePeriod == 0?'perpetual':date('Y-m-d H:i:s',$this->cachePeriod)];
@@ -2577,6 +2542,17 @@ class Db
     public function notNull()
     {
         //SELECT * FROM 表名 WHERE 字段名 IS NOT NULL AND 字段名 <> '';
+    }
+
+    /**
+     * 排序
+     * @param string $attr 排序的属性(将自动映射为字段)
+     * @param string $order asc | desc
+     * @return Db
+     */
+    public function order($attr = 'order', $order = 'asc')
+    {
+
     }
 
     /**
