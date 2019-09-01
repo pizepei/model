@@ -145,6 +145,11 @@ class Db
      * @var string
      */
     protected $wheresql = '';
+    /**
+     * 准备sql
+     * @var array
+     */
+    protected $prepareSQL = [];
 
     /**
      * 表结构(初始化)
@@ -1143,16 +1148,11 @@ class Db
         if(!empty($field)){
             $this->field($field);
         }
-        if ($this->forceIndex_sql !=='' && $this->forceIndex ===true){
-            # 没有关闭强制使用 index 同时没有使用forceIndex()方法手动定义强制内容
-            # 使用自动模式
-
-        }
 
         $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` '.($this->forceIndex_sql);
 
         if (!empty($this->wheresql)){
-            $this->sql .= ' WHERE '.$this->wheresql;
+            $this->sql .= ' WHERE '.$this->wheresql.($this->prepareSQL['orderBysql']??'');
         }
         if ($this->Config['type'] == 'mysql'){
             $data = $this->constructorSend(false);
@@ -1177,7 +1177,9 @@ class Db
         if(!empty($field)){
             $this->field($field);
         }
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql).$this->groupBysql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` '.($this->forceIndex_sql).
+            (empty($this->wheresql)?' ':'  WHERE '.$this->wheresql).($this->prepareSQL['orderBysql']??'');
+
 
         $data = $this->constructorSend();
         if (empty($data) || $this->ClassName =='db')
@@ -1496,6 +1498,7 @@ class Db
                  * 判断是否是array
                  */
                 if(is_array($v)){
+                    if (!isset($v[0])||!isset($v[1])){ throw new \Exception('sql where ayyar??');}
                     $judgeUnknownStr = '';
                     $judgeUnknown = strtoupper($v[0]);
                     $judgeUnknownValue = $v[1];
@@ -1578,6 +1581,7 @@ class Db
             }
         }
         $SQL = rtrim($SQL,'AND');
+        $this->prepareSQL['wheresql'] = $SQL;
         $this->wheresql = $SQL;
     }
     const sql_keyword = ['explain'];
@@ -2016,6 +2020,7 @@ class Db
      */
     public function update(array  $data)
     {
+        if (empty($data)){ throw new \Exception('data  empty ');}
         if(empty($this->wheresql)){
             throw new \Exception('查询错误sql错误');
         }
@@ -2552,7 +2557,11 @@ class Db
      */
     public function order($attr = 'order', $order = 'asc')
     {
-
+        if (!in_array($order,['asc','desc'])){
+            throw new \Exception('Can only be  desc or asc');
+        }
+        $this->prepareSQL['orderBysql'] = ' ORDER BY `'.$attr.'` '.$order.' ';
+        return $this;
     }
 
     /**
@@ -2566,12 +2575,11 @@ class Db
     public function group(string $name,array$field=[])
     {
 
-        $this->execute_bindValue[':groupBy'] = $name;
-        $this->groupBysql =  ' group by '.$name;
+        $this->groupBysql =  ' group by `'.$name.'`';
         if(!empty($field)){
             $this->field($field);
         }
-        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql).$this->groupBysql;
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.(empty($this->wheresql)?'`':'` WHERE '.$this->wheresql).$this->groupBysql.($this->prepareSQL['orderBysql']??'');
         $data = $this->query($this->sql);
         if (empty($data) || $this->ClassName =='db')
         {
