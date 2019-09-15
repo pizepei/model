@@ -2555,7 +2555,7 @@ class Db
      * @param string $order asc | desc
      * @return Db
      */
-    public function order($attr = 'order', $order = 'asc')
+    public function order($attr = 'creation_time', $order = 'asc')
     {
         if (!in_array($order,['asc','desc'])){
             throw new \Exception('Can only be  desc or asc');
