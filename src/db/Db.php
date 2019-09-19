@@ -2132,7 +2132,6 @@ class Db
              */
             $this->sql = $sql.' ( '.$sqlindex.' ) ';
         }
-        var_dump($this->sql);
         return $this->constructorSendUpdate();
 
     }
