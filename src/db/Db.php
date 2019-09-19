@@ -2124,7 +2124,7 @@ class Db
             /**
              * 有 where条件
              */
-            $this->sql = $sql.' '.$this->wheresql.' AND '.$sqlindex;
+            $this->sql = $sql.' '.$this->wheresql.' '.($sqlindex===''?'':' AND '.$sqlindex);
 
         }else{
             /**
@@ -2132,6 +2132,7 @@ class Db
              */
             $this->sql = $sql.' ( '.$sqlindex.' ) ';
         }
+        var_dump($this->sql);
         return $this->constructorSendUpdate();
 
     }
