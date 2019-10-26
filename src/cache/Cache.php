@@ -88,10 +88,13 @@ class Cache{
     }
 
     /**
-     * 获取缓存
+     * @Author 皮泽培
+     * @Created 2019/10/26 16:58
      * @param        $key [分组 ,key]
      * @param string $type
+     * @param bool $info 是否获取缓存详情
      * @return mixed
+     * @throws \Exception
      */
     public static function get($key,$type='sys',$info=false)
     {
