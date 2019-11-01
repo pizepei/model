@@ -914,6 +914,12 @@ class Db
                     $tablestr .=$ClassName{$x};
                 }
             }
+
+            # 处理$table
+            if ($table !==''){
+                $table = str_replace(['-',"'",'"','`'],['_','_','_','_'],$table);
+            }
+
             /**
              * 拼接
              */
