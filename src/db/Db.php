@@ -917,7 +917,7 @@ class Db
 
             # 处理$table
             if ($table !==''){
-                $table = str_replace(['-',"'",'"','`'],['_','_','_','_'],$table);
+                $table = str_replace(['-',"'",'"','`'],['','','',''],$table);
             }
 
             /**
