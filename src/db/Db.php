@@ -369,7 +369,6 @@ class Db
         /**
          * 字段不对
          */
-
         /**
          * 清除sql
          */
@@ -862,6 +861,7 @@ class Db
         /**************************资源重复利用*****************************************/
 
         try {
+
             /**
              * $dsn 连接信息
              * username 数据库连接用户名
@@ -876,7 +876,11 @@ class Db
             return self::setObjectPattern();
 
         } catch (\PDOException $e) {
-            die ("Error!: " . $e->getMessage() . "<br/>");
+            if (class_exists('pizepei\staging\App')){
+                    throw new \Exception($e->getMessage(),$e->getCode());
+            }else{
+                exit($e->getMessage().'['.$e->getCode().']');
+            }
         }
 
     }
