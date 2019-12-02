@@ -1228,6 +1228,7 @@ class Db
             {
                 if ($value['TYPE']=='json')
                 {
+
                     $jsonKey[$key] = $value;
                 }
             }
@@ -1245,8 +1246,7 @@ class Db
                 }
             }
         }
-        if (!$all)$data = $TurnArray[0];
-        return $data;
+        return $all?$TurnArray:$TurnArray[0];
     }
 
     /**
