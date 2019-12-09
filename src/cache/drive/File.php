@@ -224,10 +224,8 @@ class File implements  Cache
                 static::staticEmpty();
                 return $data;
             }
-            /**
-             * 删除
-             */
-            unlink(static::$path);
+            # 删除
+            if(file_exists(static::$path )){unlink(static::$path);}
         }
         /**
          * 清除 static  信息
