@@ -354,36 +354,36 @@ class Db
 
                 break;
             case '23000': # 违反唯一规则
+                #SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '192.222.222.222' for key 'server_ip'
                 $msg = str_replace('SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry \'','',$e->getMessage());
                 $msg = str_replace('\' for key \'',' 已经存在  ',$msg);
                 $msg = str_replace('\'','',$msg);
                 throw new \Exception($msg);
                 break;
+            case '22032': # 违反唯一规则
+                #  SQLSTATE[22032]: <<Unknown error>>: 3140 Invalid JSON text: "Miss exponent in number." at position 2 in value for column 'deploy_build_log.account_id'.[22032]
+                $msg = str_replace('SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry \'','',$e->getMessage());
+                throw new \Exception($e->getMessage().'：表字段类型和插入数据不符');
+                break;
             default:
+                throw new \Exception($e->getMessage(),$e->getCode());
 
         }
-        # 违反唯一规则
-        #SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '192.222.222.222' for key 'server_ip'
 
-
-        /**
-         * 字段不对
-         */
-        /**
-         * 清除sql
-         */
-        $this->eliminateSql();
         /**
          * 使用
          */
         if (class_exists('pizepei\staging\App')){
-            if(App::init()->MyException()){
-                App::init()->MyException()->PDO_exception_handler($e);
+            if(app()->MyException()){
+                app()->MyException()->PDO_exception_handler($e);
             }
         }else{
-
             exit($e->getMessage().'['.$e->getCode().']');
         }
+        /**
+         * 清除sql
+         */
+        $this->eliminateSql();
 //        throw new MyException();
 //        PDO_exception_handler
 //        new MyException('./',$e,self::ERROR_CODE);
@@ -434,6 +434,7 @@ class Db
             $result_table = $this->query("SELECT table_name FROM information_schema.TABLES WHERE table_name ='{$this->table}'"); //返回一个PDOStatement对象
 
             if(empty($result_table)){
+
                 # 表不存在拼接创建sql 创建表
                 $createTablrSql = "CREATE TABLE `".$this->table."`(";
                 foreach($this->structure as $key=>$value){
