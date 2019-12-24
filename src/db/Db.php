@@ -233,6 +233,7 @@ class Db
     /**
      * 初始化数据：表不存在时自动创建表然后自动插入$initData数据
      *      支持多条
+     *      特别注意：多条时数据key不需要一致
      * @var array
      */
     protected $initData = [
@@ -366,7 +367,7 @@ class Db
                 throw new \Exception($e->getMessage().'：表字段类型和插入数据不符');
                 break;
             default:
-                throw new \Exception($e->getMessage(),$e->getCode());
+//                throw new \Exception($e->getMessage(),$e->getCode());
 
         }
 
