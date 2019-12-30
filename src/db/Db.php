@@ -2404,10 +2404,13 @@ class Db
                                         $contents = json_decode($contents,true);
                                         if ($contents){
                                             # 如果包中有设置是否符合当前环境   module
-                                            if ($contents['centre'] === $deploy['centre'] ||  $contents['deploy']===$deploy['deploy'] ){
+                                            if ($contents['centre'] === $deploy['centre']){
+                                                # 当前项目是中心项目环境
                                                 $exist = true;
-                                            }else{
-                                                $exist = false;
+                                            }
+                                            if ($contents['deploy'] === true && $deploy['deploy'] === true){
+                                                # 如果是必须在中心  部署项目部署的包
+                                                $exist = true;
                                             }
                                         }
                                     }
