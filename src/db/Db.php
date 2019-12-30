@@ -317,6 +317,11 @@ class Db
         foreach($pathData as &$value){
             # 清除../   替换  /  \  .php
             $value = str_replace('.php','',str_replace('/',"\\",str_replace('..'.DIRECTORY_SEPARATOR,'',$value)));
+            # 处理带-的路径
+            $strlen = strlen($value);
+            for ($x=0; $x<=$strlen-1; $x++) {
+                if ($value{$x} ==='-'){$value = strtoupper($value{$x+1});}
+            }
             # 实例化
             $modelObject = $value::table();
             $modelObject->CreateATableThatDoesNotExist();
