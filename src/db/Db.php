@@ -303,16 +303,16 @@ class Db
      * @param string $iniName 可自定义包认证路径文件名称
      * @return array
      */
-    public function initStructure(string $module='',bool $composer=false,string $iniName = 'namespaceModelPath.ini')
+    public function initStructure(string $module='',bool $composer=false,string $iniName = 'namespaceModelPath.json',$deploy=[])
     {
         $path = '..'.DIRECTORY_SEPARATOR.'model';
         #拼接模块路径
         if($module !=''){ $path = $path.DIRECTORY_SEPARATOR.$module;}
         $pathData=[];
-        $this->getFilePathData($path,$pathData,'Model.php');
+//        $this->getFilePathData($path,$pathData,'Model.php');
         # 获取 vendor 目录下符合规范的包
         if ($composer){
-            $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$pathData,'Model.php',$iniName);
+            $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$pathData,'Model.php',$iniName,$deploy);
         }
         foreach($pathData as &$value){
             # 清除../   替换  /  \  .php
@@ -322,7 +322,7 @@ class Db
             $modelObject->CreateATableThatDoesNotExist();
         }
         # 开始初始化
-        return count($pathData);
+        return [count($pathData),$pathData];
     }
 
     /**
@@ -2371,11 +2371,18 @@ class Db
     }
 
     /**
-     * 获取所有文件目录地址
+     * @Author 皮泽培
+     * @Created 2019/12/30 9:52
      * @param $dir
      * @param $fileData
+     * @param string $suffix
+     * @param string $approve
+     * @param array $deploy  部署项目的信息用来判断是否需要初始化模型
+     * @title  获取所有文件目录地址
+     * @explain 路由功能说明
+     * @throws \Exception
      */
-    public function getFilePathData($dir,&$fileData,string $suffix='.php',string $approve='')
+    public function getFilePathData($dir,&$fileData,string $suffix='.php',string $approve='',$deploy=[])
     {
         # 判断是否是目录
         if (is_dir($dir)){
@@ -2387,11 +2394,23 @@ class Db
                         if($file != '.' && $file != '..'){
                             # 判断是否是目录
                             if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
-                                $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve);
+                                $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve,$deploy);
                             }else{
                                 # 判断是否是php文件
                                 if($file== $approve){
-                                    $exist = true;
+                                    # 判断是否是中心项目 如果不是 就对基础项目的模型进行排除
+                                    if (isset($deploy['centre'])){
+                                        $contents = file_get_contents($dir.DIRECTORY_SEPARATOR.$file);
+                                        $contents = json_decode($contents,true);
+                                        if ($contents){
+                                            # 如果包中有设置是否符合当前环境   module
+                                            if ($contents['centre'] === $deploy['centre'] ||  $contents['deploy']===$deploy['deploy'] ){
+                                                $exist = true;
+                                            }else{
+                                                $exist = false;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2405,7 +2424,7 @@ class Db
                             if($file != '.' && $file != '..'){
                                 # 判断是否是目录
                                 if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
-                                    $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve);
+                                    $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve,$deploy);
                                 }else{
                                     # 判断是否是php文件
                                     if(strrchr($file,$suffix) == $suffix){
@@ -2418,13 +2437,15 @@ class Db
                     }
                 }
             }else{
+
                 if ($dh = opendir($dir)){
                     while (($file = readdir($dh)) !== false){
                         if($file != '.' && $file != '..'){
                             # 判断是否是目录
                             if(is_dir($dir.DIRECTORY_SEPARATOR.$file)){
-                                $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve);
+                                $this->getFilePathData($dir.DIRECTORY_SEPARATOR.$file,$fileData,$suffix,$approve,$deploy);
                             }else{
+
                                 # 判断是否是php文件
                                 if(strrchr($file,$suffix) == $suffix){
                                     $fileData[] = $dir.DIRECTORY_SEPARATOR.$file;
