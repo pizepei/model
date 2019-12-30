@@ -309,20 +309,19 @@ class Db
         #拼接模块路径
         if($module !=''){ $path = $path.DIRECTORY_SEPARATOR.$module;}
         $pathData=[];
-//        $this->getFilePathData($path,$pathData,'Model.php');
+        $this->getFilePathData($path,$pathData,'Model.php');
         # 获取 vendor 目录下符合规范的包
         if ($composer){
             $this->getFilePathData('..'.DIRECTORY_SEPARATOR.'vendor',$pathData,'Model.php',$iniName,$deploy);
         }
         foreach($pathData as &$value){
             # 清除../   替换  /  \  .php
-            $value = str_replace(['.php','/','..'.DIRECTORY_SEPARATOR],['','\\',''],$value);
+            $value = str_replace(['.php','/','..\\'],['','\\',''],$value);
             # 处理带-的路径
             $strlen = strlen($value);
             for ($x=0; $x<=$strlen-1; $x++) {
                 if ($value{$x} ==='-'){
-                    unset($value{$x});
-                    $value = strtoupper($value{$x+1});
+                    $value{$x+1} = strtoupper($value{$x+1});
                 }
             }
             $value = str_replace(['-'],[''],$value);
@@ -888,7 +887,7 @@ class Db
 
         } catch (\PDOException $e) {
             if (class_exists('pizepei\staging\App')){
-                    throw new \Exception($e->getMessage(),$e->getCode());
+                throw new \Exception($e->getMessage(),$e->getCode());
             }else{
                 exit($e->getMessage().'['.$e->getCode().']');
             }
@@ -908,47 +907,47 @@ class Db
      */
     protected static function getTable($table,$prefix)
     {
-            /**
-             * 获取实例化后的类名称
-             */
-            $ClassName =explode('\\', get_called_class() );
-            $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
-            $ClassName = str_replace("Model","",$ClassName);
+        /**
+         * 获取实例化后的类名称
+         */
+        $ClassName =explode('\\', get_called_class() );
+        $ClassName = lcfirst(end($ClassName));  //end()返回数组的最后一个元素
+        $ClassName = str_replace("Model","",$ClassName);
 
-            $strlen = strlen($ClassName);
-            $tablestr = '';
-            /**
-             * 处理大小写和下划线
-             */
-            for ($x=0; $x<=$strlen-1; $x++)
-            {
-                $str =ord($ClassName{$x});
-                if($str>64 && $str <91 ){
-                    $tablestr  .= '_'.strtolower($ClassName{$x});
-                }else{
-                    $tablestr .=$ClassName{$x};
-                }
-            }
-
-            # 处理$table
-            if ($table !==''){
-                $table = str_replace(['-',"'",'"','`'],['','','',''],$table);
-            }
-
-            /**
-             * 拼接
-             */
-            if($ClassName =='db'){
-                /**
-                 * 判断是否强制加表前缀
-                 */
-                self::$altertabl = $table;
-                if($prefix){
-                    self::$altertabl = static::$alterConfig['prefix'].$table;
-                }
+        $strlen = strlen($ClassName);
+        $tablestr = '';
+        /**
+         * 处理大小写和下划线
+         */
+        for ($x=0; $x<=$strlen-1; $x++)
+        {
+            $str =ord($ClassName{$x});
+            if($str>64 && $str <91 ){
+                $tablestr  .= '_'.strtolower($ClassName{$x});
             }else{
-                self::$altertabl = static::$alterConfig['prefix'].$tablestr.(empty($table)?'':'_'.$table);
+                $tablestr .=$ClassName{$x};
             }
+        }
+
+        # 处理$table
+        if ($table !==''){
+            $table = str_replace(['-',"'",'"','`'],['','','',''],$table);
+        }
+
+        /**
+         * 拼接
+         */
+        if($ClassName =='db'){
+            /**
+             * 判断是否强制加表前缀
+             */
+            self::$altertabl = $table;
+            if($prefix){
+                self::$altertabl = static::$alterConfig['prefix'].$table;
+            }
+        }else{
+            self::$altertabl = static::$alterConfig['prefix'].$tablestr.(empty($table)?'':'_'.$table);
+        }
 
     }
 
@@ -1013,40 +1012,40 @@ class Db
         /**
          * 查看索引         show index from table_name
          * MySQL SHOW INDEX会返回以下字段：
-            Table
-            表的名称。
+        Table
+        表的名称。
          *
-            Non_unique
-            如果索引不能包括重复词，则为0。如果可以，则为1。
+        Non_unique
+        如果索引不能包括重复词，则为0。如果可以，则为1。
          *
-            Key_name
-            索引的名称。
+        Key_name
+        索引的名称。
          *
-            Seq_in_index
-            索引中的列序列号，从1开始。
+        Seq_in_index
+        索引中的列序列号，从1开始。
          *
-            Column_name
-            列名称。
+        Column_name
+        列名称。
          *
-            Collation
-            列以什么方式存储在索引中。在MySQLSHOW INDEX语法中，有值’A’（升序）或NULL（无分类）。
+        Collation
+        列以什么方式存储在索引中。在MySQLSHOW INDEX语法中，有值’A’（升序）或NULL（无分类）。
          *
-            Cardinality
-            索引中唯一值的数目的估计值。通过运行ANALYZE TABLE或myisamchk -a可以更新。基数根据被存储为整数的统计数据来计数，所以即使对于小型表，该值也没有必要是精确的。基数越大，当进行联合时，MySQL使用该索引的机会就越大。
+        Cardinality
+        索引中唯一值的数目的估计值。通过运行ANALYZE TABLE或myisamchk -a可以更新。基数根据被存储为整数的统计数据来计数，所以即使对于小型表，该值也没有必要是精确的。基数越大，当进行联合时，MySQL使用该索引的机会就越大。
          *
-            Sub_part
-            如果列只是被部分地编入索引，则为被编入索引的字符的数目。如果整列被编入索引，则为NULL。
+        Sub_part
+        如果列只是被部分地编入索引，则为被编入索引的字符的数目。如果整列被编入索引，则为NULL。
          *
-            Packed
-            指示关键字如何被压缩。如果没有被压缩，则为NULL。
+        Packed
+        指示关键字如何被压缩。如果没有被压缩，则为NULL。
          *
-            Null
-            如果列含有NULL，则含有YES。如果没有，则该列含有NO。
+        Null
+        如果列含有NULL，则含有YES。如果没有，则该列含有NO。
          *
-            Index_type
-            用过的索引方法（BTREE, FULLTEXT, HASH, RTREE）。
+        Index_type
+        用过的索引方法（BTREE, FULLTEXT, HASH, RTREE）。
          *
-            Comment
+        Comment
          */
 
         /**
@@ -1085,7 +1084,7 @@ class Db
              * 获取完整的表结构
              */
             $create = $this->query('describe '.$this->table); //返回一个PDOStatement对象
-            
+
             //$create = $this->instance->query('describe '.$this->table); //返回一个PDOStatement对象
             //$create = $create->fetchAll(\PDO::FETCH_ASSOC); //获取所有
 
@@ -1243,7 +1242,7 @@ class Db
                     $jsonKey[$key] = $value;
                 }
             }
-         }
+        }
         /**
          *循环处理json字符串
          */
@@ -1783,7 +1782,7 @@ class Db
                     $field .= '`'.$this->INDEX_PRI.'`,';
                 }
             }
-        //DEFAULT
+            //DEFAULT
         }
 
         foreach ($data[0] as $kk=>$vv){
@@ -1827,15 +1826,15 @@ class Db
                 if($this->ClassName !='db'){
                     if($this->INDEX_PRI != $kk && $this->structure[$kk]['TYPE'] =='uuid'){
                         //检测是否是uuid
-                            if(strlen($vv) == 36){
-                                preg_match('/[A-Za-z0-9]{8}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{12}/',$vv,$preg_match);
-                                if($preg_match[0] != $vv){
-                                    throw new \Exception('不规范的UUID');
-                                }
-                            }else{
-                                throw new \Exception('不规范的UUID:uuid必须是36位');
+                        if(strlen($vv) == 36){
+                            preg_match('/[A-Za-z0-9]{8}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{12}/',$vv,$preg_match);
+                            if($preg_match[0] != $vv){
+                                throw new \Exception('不规范的UUID');
                             }
+                        }else{
+                            throw new \Exception('不规范的UUID:uuid必须是36位');
                         }
+                    }
                 }
 
                 if(is_array($vv)){
@@ -2417,9 +2416,13 @@ class Db
                                                 # 当前项目是中心项目环境
                                                 $exist = true;
                                             }
-                                            if ($contents['deploy'] === true && $deploy['deploy'] === true){
+                                            if ($contents['deploy'] === true ){
                                                 # 如果是必须在中心  部署项目部署的包
                                                 $exist = true;
+                                                # 如果要包定义是部署包 但是当前项目部署部署项目 强制修改为false
+                                                if ($deploy['deploy'] !== true){
+                                                    $exist = false;
+                                                }
                                             }
                                         }
                                     }
@@ -2574,12 +2577,12 @@ class Db
     public function join ()
     {
         /**
-        * 有表 table1 table2 table3
-            SELECT employee_name
-            FROM (table3 c LEFT JOIN TABLE1 a
-            ON c.employee_id=a.employee_id )
-            LEFT JOIN table2 b ON b.company_id=a.company_id
-            WHERE company_name ='A' and employee_age<30;
+         * 有表 table1 table2 table3
+        SELECT employee_name
+        FROM (table3 c LEFT JOIN TABLE1 a
+        ON c.employee_id=a.employee_id )
+        LEFT JOIN table2 b ON b.company_id=a.company_id
+        WHERE company_name ='A' and employee_age<30;
          */
     }
     /**
