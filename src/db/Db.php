@@ -459,7 +459,7 @@ class Db
                             $value['NULL'] = $value['NULL']??'';//由于text和json在严格模式下是不允许有默认值的，这样在add操作时如果没有就会提示错误，设置成可 NULL 避免麻烦
                         }else if($value['TYPE'] == 'uuid'){
                             $value['TYPE'] = 'char(36)';
-                            if($key != $this->structure['PRIMARY']){
+                            if($key != $this->structure['PRIMARY']??''){
                                 $value['DEFAULT'] = self::UUID_ZERO;
                             }
                         }
