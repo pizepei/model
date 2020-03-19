@@ -61,7 +61,7 @@ class Redis
             return $this->redis;
 
         }catch(\Exception $e){
-            exit(json_encode(['code'=>1001,'Message'=>$e->getMessage()]));
+            exit(json_encode(['code'=>1001,'Message'=>'redis '.$e->getMessage()]));
         }
     }
 
