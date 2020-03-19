@@ -219,9 +219,9 @@ class Db
              * 注意：
              *      格式为 ['表操作的字段','操作类型ADD、DROP、MODIFY、CHANGE','操作内容（为安全起见不包括alter table user）','修改说明','修改人']
              */
-            ['new1','ADD',' add COLUMN new1 VARCHAR(20) DEFAULT NULL','修改说明：增加user表的new1字段','pizepei'],
-            ['new1','DROP','  COLUMN new2','修改说明：删除一个字段','pizepei'],
-            ['new1','MODIFY',' new1 VARCHAR(10)','修改说明：修改一个字段的类型','pizepei'],
+            ['new1','ADD','new1 VARCHAR(20) DEFAULT NULL','修改说明：增加user表的new1字段','pizepei'],//可以使用UUID 关键字
+            ['new1','DROP','new2','修改说明：删除一个字段','pizepei'],
+            ['new1','MODIFY','VARCHAR(10)','修改说明：修改一个字段的类型','pizepei'],
             ['new1','CHANGE',' new1 new4 int;','修改说明：修改一个字段的名称，此时一定要重新指定该字段的类型','pizepei'],
         ],
         /**
@@ -622,6 +622,9 @@ class Db
                     if(!isset($value[2])){
                         throw new \Exception("[$this->table] "."table_version-{$i}-操作内容 illegality");
                     }
+//                    table_structure_log
+                    $value[2] = str_replace('uuid','char(36)',$value[2]);
+
                     # 拼接sql
                     $noe_sql = $strSql;
                     $noe_sql .=self::ALTER_TABLE_STRUCTURE[$value[1]].$value[2];
