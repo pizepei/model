@@ -1211,7 +1211,45 @@ class Db
         }
         return $this->fetchJsonTurnArray($data,true);
     }
-
+    /**
+     * 分页获取所有数据
+     * @Author 皮泽培
+     * @Created 2019/6/11 15:49
+     * @param array $field
+     * @param int $page
+     * @param int $limit
+     * @param bool $order 是否使用默认排序
+     */
+    public function fetchAllPage(array $field =[],int $page=1,$limit=10,$order=true)
+    {
+        if(!empty($field)){
+            $this->field($field);
+        }
+        # 为了保证排序的合理性 增加了默认按照时间排序，如有单独使用order()方法此逻辑不执行
+        if (!isset($this->prepareSQL['orderBysql']) && $order){
+            $this->order();
+        }
+        # 查询出总数量 sql
+        $this->sql = 'SELECT count(*) FROM `'.$this->table.'` '.($this->forceIndex_sql).
+            (empty($this->wheresql)?' ':'  WHERE '.$this->wheresql);
+        $count = $this->constructorSend(true,false);
+        # 查询数据
+        $this->sql = 'SELECT '.$this->field.' FROM `'.$this->table.'` '.($this->forceIndex_sql).
+            (empty($this->wheresql)?' ':'  WHERE '.$this->wheresql).($this->prepareSQL['orderBysql']??'').' LIMIT '.$limit.' OFFSET '.($page-1)*$limit;
+        $data = $this->constructorSend(true);
+        # 进行数据转换
+        if (empty($data) || $this->ClassName =='db')
+        {
+            return $data;
+        }
+        $data = $this->fetchJsonTurnArray($data,true);
+        return [
+            'count'=>$count[0]['count(*)'],
+            'limit'=>$limit,
+            'page'=>$page,
+            'list'=>$data
+        ];
+    }
     /**
      * @Author 皮泽培
      * @Created 2019/6/24 17:49
@@ -1301,10 +1339,11 @@ class Db
     /**
      * 查询构造器
      * @param bool $all
+     * @param bool $eliminateSql
      * @return mixed
      * @throws \Exception
      */
-    public function constructorSend($all = true)
+    public function constructorSend($all = true,$eliminateSql=true)
     {
         //可以看到，两者的最后返回结果是不一样的，query 返回的是一个结果集，而execute 返回的是影响行数 或者 是插入数据的id ！~由此可以看出，query 拿来执行 select 更好一些，execute 哪里执行 update | insert | delete 更好些！~~
         try {
@@ -1347,7 +1386,9 @@ class Db
                 throw new \Exception('查询错误sql错误');
             }
             # 清除sql影响
-            $this->eliminateSql();
+            if ($eliminateSql){
+                $this->eliminateSql();
+            }
             # 统计提交
             return $data;
         } catch (\PDOException $e) {
